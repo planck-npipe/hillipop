@@ -1,119 +1,13 @@
 #
 #HILLIPOP tools library
 #
-#Jun 2016   - M. Tristram -
+#Sep 2020   - M. Tristram -
 import numpy as np
-#import mpfit as mp
 from numpy.linalg import *
 import astropy.io.fits as fits
 import scipy.ndimage as nd
-import matplotlib.pyplot as plt
-#import pymc
-#import xpol as xp
 
 tagnames = ['TT','EE','BB','TE','TB','EB']
-
-
-
-
-
-
-#------------------------------------------------------------------------------------------------
-#Hillipop Gaussian Likelihood (No Foregrounds)
-#------------------------------------------------------------------------------------------------
-class likelihood(object):
-    """
-    Hillipop full-multipole
-    """
-    def __init__( self, cldata, fullkll, lrange):
-        '''
-        init and compute invert covariance matrix
-        
-        * cldata: array(nbin,ncross)
-                  data array of spectra
-        * fullkll: array(nl*ncross,nl*ncross)
-                   covariance matrix
-        * lrange: (lmin,lmax)
-        '''
-        self.CMB = True
-        
-        #cldata[nl,ncross]
-        self.lmin,self.lmax = lrange
-        self.nel = self.lmax-self.lmin+1
-        
-        #Data
-        self.cldata = cldata
-        bla,self.ncross = np.shape(cldata)
-        
-        #Kll
-        kll = cut_kll( fullkll, self.ncross, (self.lmin,self.lmax))
-        self.invkll = inv(kll)
-    
-    def compute_likelihood( self, cl_boltz):
-        '''
-        Compute likelihood from model out of Boltzmann code
-        Units: Cl in K^2
-        '''
-        #cl_boltz from Boltzmann (Cl in K^2)
-        lmin,lmax,ncross,nel = self.lmin,self.lmax,self.ncross,self.nel
-        lth = np.arange( 0, lmax+1)
-        
-        #Compute Dlth
-        clth = np.asarray(cl_boltz[lth]) * (lth*(lth+1)/2./np.pi)
-        
-        #Compute Rl = Dl - Dlth
-        Xl = np.reshape([self.cldata[lmin:lmax+1,c]-clth[lmin:lmax+1] for c in range(ncross)],ncross*nel)
-        
-        return( np.dot( np.dot( Xl, self.invkll), Xl))
-
-
-class bin_likelihood(object):
-    """
-    Hillipop binned-likelihood
-    """
-    #likelihood in Cl
-    def __init__( self, cbdata, kbb, bintab):
-        '''
-        init and compute invert covariance matrix
-        
-        * cldata: array(nbin,ncross)
-                  data array of spectra
-        * kbb: array(nbin*ncross,nbin*ncross)
-               covariance matrix
-        *bintab: Bins class (Xpol)
-        '''
-        self.CMB = True
-        self.bintab = bintab
-        
-        #Data
-        self.cbdata = cbdata
-        self.ncross,self.nbins = np.shape(cbdata)
-        if self.nbins != bintab.nbins:
-            raise ValueError('Binning not coherent')
-        
-        #Kbb
-        self.invkbb = np.linalg.inv(kbb)
-    
-        
-    def compute_likelihood( self, cl_boltz):
-        '''
-        Compute binned-likelihood from model out of Boltzmann code
-        Units: Cl in K^2
-        '''
-        #bin Clth
-        cbth = self.bintab.bin_spectra( cl_boltz)
-        
-        #Compute Rb = Cb - Cbth
-        Xb = np.reshape([self.cbdata[c]-cbth for c in range(self.ncross)],self.ncross*self.nbins)
-        
-        return( np.dot( np.dot( Xb, self.invkbb), Xb))
-    
-    def compute_model( self, pico, parpico):
-        cl = hlp_model( pico, parpico)
-        return( self.compute_likelihood(cl))
-#------------------------------------------------------------------------------------------------
-
-
 
 
 
@@ -724,34 +618,7 @@ def hlp_fgmodel( pars):
 
 
 
-#------------------------------------------------------------------------------------------------
-#PRIOR
-#------------------------------------------------------------------------------------------------
-class prior:
-    from scipy.interpolate import interp1d
-    from scipy.interpolate import InterpolatedUnivariateSpline
-    
-    def __init__(self, parname):
-        self.CMB = False
-        self.parname = parname
-#        pass
 
-    def gauss( self, mean, sigma):
-        self._pdf = lambda x: np.exp( -0.5*((x-mean)/sigma)**2)
-    
-    def tabulated( self, val, lik, order=2):
-        self._pdf = self.InterpolatedUnivariateSpline( val, lik, k=order)
-#        self._pdf = self.interp1d( val, lik, kind='quadratic')
-    
-    def compute_likelihood( self, value):
-        if isinstance( value, dict):
-            l = self._pdf(value[self.parname])
-        else:
-            l = self._pdf(value)
-        
-        return( -2.*np.log(l))
-
-#------------------------------------------------------------------------------------------------
 
 
 
@@ -878,50 +745,6 @@ def SG( l, cl, nsm=5, lcut=0):
     return clSG
 
 
-def posterior2D( xvals, yvals, allchi2, parnames, cmaps=None, xlim=None, ylim=None, names=None, alpha=0.8):
-    nele = len(allchi2)
-
-    if cmaps is None:
-        cmaps = ["Blues","Greens","Reds","Greys"]
-
-    plt.figure(figsize=(6,6))
-    for it,chi2 in enumerate(np.asarray(allchi2)):
-        chi2[np.isnan(chi2)] = np.inf
-
-        L = np.array(np.exp( -0.5*(chi2-chi2.min()))).T
-        cmap = plt.cm.get_cmap(cmaps[it])
-        
-        ax=plt.subplot( 2, 2, 3)
-        lvls=np.append(list(ctr_level( L, [0.68,0.95])[::-1]),L.max())
-        plt.contourf( xvals, yvals, L, levels=lvls,colors=None, extent=(xvals.min(),xvals.max(),-1,1), cmap=cmap, alpha=alpha)
-        plt.xlabel( parnames[0])
-        plt.ylabel( parnames[1])
-        ax.locator_params(tight=True, nbins=6)
-        if xlim is not None: plt.xlim(xlim)
-        if ylim is not None: plt.ylim(ylim)
-        
-        ax=plt.subplot( 2, 2, 4)
-        L1 = np.sum( L,1)
-        plt.plot( yvals, L1/np.max(L1), color=cmap(0.7))
-#        plt.plot( yvals, L[:,np.argmin( np.abs(xvals))]/np.sum(L[:,np.argmin( np.abs(xvals))]), color=cmap(0.5), ls='--')
-        ax.yaxis.set_visible(False)
-        ax.locator_params(tight=True, nbins=6)
-        plt.xlabel( parnames[1])
-        if ylim is not None: plt.xlim(ylim)
-        
-        ax=plt.subplot( 2, 2, 1)
-        L0 = np.sum( L, 0)
-        plt.plot( xvals, L0/np.max(L0), color=cmap(0.7))
-#        plt.plot( xvals, L[np.argmin( np.abs(yvals)),:]/np.sum(L[np.argmin( np.abs(yvals)),:]), color=cmap(0.5), ls='--')
-        ax.locator_params(tight=True, nbins=6)
-        ax.yaxis.set_visible(False)
-        if xlim is not None: plt.xlim(xlim)
-
-    if names is not None:
-        ax=plt.subplot( 2, 2, 1)
-        ax.legend( names, loc='upper center', bbox_to_anchor=(1.5, 0.5), prop={'size': 10})
-
-
 def convert_to_stdev(sigma):
     """
     Given a grid of likelihood values, convert them to cumulative
@@ -996,88 +819,10 @@ def BinSpectra( l, cl, ecl=[], dl=40, l2=True):
 
 
 
-#--------------------------------------------------------------------------------------------------
-#pyMC
+
 #------------------------------------------------------------------------------------------------
-plck_params = { 'ombh2': 0.02212,
-                'omch2': 0.1210,
-                'tau': 0.058,
-                'As': 3.058,
-                'ns': 0.9649,
-                'theta': 1.04164}
-
-def hlp_model( pars, pico):
-    '''
-    retrieve PICO model in Cl
-    '''
-    dl = pico.get(force=True, outputs=['cl_TT'], **pars)['cl_TT'] #l(l+1)/2/np.pi*cl
-    
-    ell = np.arange(len(dl))
-    fact = ell*(ell+1)/2/np.pi
-    
-    cl = np.zeros(len(dl))
-    cl[2:] = dl[2:]*1e-12/fact[2:]
-    
-    return( cl)
-
-##PICO: pico3_tailmonty_v34.dat
-## 0.01016 < re_optical_depth < 0.18221
-## 0.059113 < omch2 < 0.20703
-## 1.7992e-09 < scalar_amp(1) < 3.3973e-09
-## 0.01017 < theta < 0.010617
-## 0.70769 < scalar_spectral_index(1) < 1.2556
-## 0.017588 < ombh2 < 0.026751
-def cosmo_model( datasets, variables, pico, fidvalues=plck_params, clmodel=hlp_model):
-    if not isinstance(datasets, list): datasets=[datasets]
-    ombh2 = pymc.Uniform('ombh2', 0.018, 0.0267, value=plck_params['ombh2'], observed=('ombh2' not in variables))
-    omch2 = pymc.Uniform('omch2', 0.08, 0.16, value=plck_params['omch2'], observed=('omch2' not in variables))
-    theta = pymc.Uniform('theta', 1.02, 1.06, value=plck_params['theta'], observed=('theta' not in variables))
-    tau   = pymc.Uniform('tau',   0.04, 0.10, value=plck_params['tau']  , observed=('tau'   not in variables))
-    As    = pymc.Uniform('As',    2.9 , 3.5 , value=plck_params['As']   , observed=('As'    not in variables))
-    ns    = pymc.Uniform('ns',    0.8 , 1.2 , value=plck_params['ns']   , observed=('ns'    not in variables))
-    @pymc.stochastic(trace=True,observed=True,plot=False)
-    def loglikelihood( value=0., ombh2=ombh2, omch2=omch2, tau=tau, As=As, ns=ns, theta=theta, pico=pico, clmodel=clmodel):
-        ll=0.
-        parpico = pico.example_inputs().copy()
-        parpico['pivot_scalar'] = 0.05
-        parpico['ombh2'] = ombh2
-        parpico['omch2'] = omch2
-        parpico['re_optical_depth'] = tau
-        parpico['scalar_amp(1)'] = np.exp(As)/1e10
-        parpico['scalar_spectral_index(1)'] = ns
-        parpico['theta'] = theta/100.
-        cl = clmodel( parpico, pico)
-        for ds in datasets:
-            if ds.CMB:
-                ll = ll + (-0.5*ds.compute_likelihood(cl))
-            else:
-                ll = ll + (-0.5*ds.compute_likelihood(parpico))
-        return(ll)
-    return(locals())
-
-
-def run_mcmc(data, pico, variables=['ombh2','omch2','theta','tau','As','ns'], model=cosmo_model,
-             delay=1000, niter=80000, nburn=20000, nthin=1):
-
-    mcmodel = model(data, variables, pico, fidvalues=plck_params)
-    
-    proposal = {'ombh2':0.05,'omch2':0.05,'theta':0.05,'tau':0.05,'As':0.05,'ns':0.05}
-    scales = {}
-    for v in variables:
-        scales[mcmodel[v]] = proposal[v]
-    
-    chain = pymc.MCMC( mcmodel)
-    
-    chain.use_step_method(pymc.AdaptiveMetropolis,chain.stochastics,scales=scales,delay=delay)
-    chain.sample(iter=niter,burn=nburn,thin=nthin)
-    
-    ch ={}
-    for v in variables: ch[v] = chain.trace(v)[:]
-    
-    return ch
-
-
-
+#Binning
+#------------------------------------------------------------------------------------------------
 class Bins(object):
     """
         lmins : list of integers
