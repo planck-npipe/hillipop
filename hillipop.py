@@ -673,64 +673,6 @@ def list_cross( nmap):
     return( [(i,j) for i in range(0,nmap) for j in range(i+1,nmap)])
 
 
-def read_kll( dir, clname, icross, tag, lmax=300):
-    nl = (lmax+1) - 2  #first 2 multipoles not written
-    ncross = len(icross)
-    
-    kll = np.zeros( (nl*ncross,nl*ncross))
-    for c1 in range(ncross):
-        cname1 = "%d%d" % icross[c1]
-        for c2 in range(ncross):
-            cname2 = "%d%d" % icross[c2]
-            kllfile = "%s/kll/kll_%s_%s_%s.fits" % (dir,clname,cname1,cname2)
-            print( kllfile)
-            data = fits.getdata( kllfile)
-            nel = int(np.sqrt(len(data))/5)
-            data = data.field(0).reshape( (nel*5, nel*5))
-            kll[nl*c1:nl*c1+nl,nl*c2:nl*c2+nl] = data[tag*nel:tag*nel+nl,tag*nel:tag*nel+nl]
-            kll[nl*c2:nl*c2+nl,nl*c1:nl*c1+nl] = data[tag*nel:tag*nel+nl,tag*nel:tag*nel+nl].T
-    
-    return( kll)
-
-def read_cls( dir, clname, icross, tag, shift=0):
-    ncross = len(icross)
-    lmax = 10000
-    
-    cldata = np.zeros( (lmax+1, ncross))
-    for c in range(ncross):
-        file1 = 'cross_%s_%d_%d.fits' % (clname,icross[c][0],icross[c][1]+shift)
-        file2 = 'cross_%s_%d_%d.fits' % (clname,icross[c][0]+shift,icross[c][1])
-        print(file1,file2)
-        xpol1 = fits.getdata( '%s/spectra/%s' % (dir,file1), tag+1)
-        xpol2 = fits.getdata( '%s/spectra/%s' % (dir,file2), tag+1)
-        cldata[np.array(xpol1.ell,int),c] = (xpol1.cell + xpol2.cell)/2.
-    
-    lmax = int(np.max(xpol1.ell))
-    return( np.resize( cldata, (lmax+1, ncross)))
-
-
-def cut_kll( fullkll, ncross, lrange):
-    lmin,lmax = lrange
-    nnel = lmax-lmin+1
-
-    fnel = len(fullkll)/ncross
-    kll = np.zeros( (nnel*ncross, nnel*ncross))
-    for c1 in range(ncross):
-        for c2 in range(ncross):
-            kll[c1*nnel:(c1+1)*nnel,c2*nnel:(c2+1)*nnel] = fullkll[c1*fnel+lmin-2:c1*fnel+lmax-1,c2*fnel+lmin-2:c2*fnel+lmax-1]
-
-    return(kll)
-
-
-
-
-def QUtoEB( map, nside):
-    alms = hp.map2alm( map, lmax=3*nside-1, pol=True)
-    mapE = hp.alm2map( alms[1], nside, lmax=3*nside-1, pol=False)
-    mapB = hp.alm2map( alms[2], nside, lmax=3*nside-1, pol=False)
-    return( mapE, mapB)
-
-
 
 def create_bin_file( filename, lbinTT, lbinEE, lbinBB, lbinTE, lbinET):
     """
@@ -809,37 +751,6 @@ def ctr_level(histo2d, lvl):
     clist = h[-alvl]
     
     return clist
-
-
-
-def BinSpectra( l, cl, ecl=[], dl=40, l2=True):
-
-    fact = 1.
-    if l2:
-        fact = l*(l+1)/2./np.pi
-
-    if ecl != []:
-        el = ecl
-    else:
-        el = np.ones( len(cl))
-
-    #apply fact
-    cl = cl*fact
-    el = el*fact
-
-    lb = []
-    cb = []
-    eb = []
-    for i in np.arange( min(l), max(l), dl):
-        w8 = np.sum(1./el[i:i+dl]**2)
-        lb.append( i+dl/2)
-        cb.append( np.sum( cl[i:i+dl]/el[i:i+dl]**2)/w8)
-        if ecl != []:
-            eb.append( np.sqrt( 1./w8))
-        else:
-            eb.append( np.std( cl[i:i+dl])/np.sqrt(dl))
-
-    return( (lb,cb,eb))
 
 #------------------------------------------------------------------------------------------------
 
