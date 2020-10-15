@@ -178,14 +178,14 @@ class hillipop(object):
                     data = fits.getdata( "%s_%d_%d.fits" % (filename,m1,m2), m)
                     ell = np.array(data.field(0),int)
                     datacl = np.zeros( max(ell)+1)
-                    datacl[ell] = data.field(1) * 1e12
+                    datacl[ell] = data.field(2) * 1e12
                     datacl[datacl == 0] = np.inf
                     tmpcl.append( 1./datacl[:self.lmax+1]**2)
                 #ET
                 data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), 4)
                 ell = np.array(data.field(0),int)
                 datacl = np.zeros( max(ell)+1)
-                datacl[ell] = data.field(1) * 1e12
+                datacl[ell] = data.field(2) * 1e12
                 datacl[datacl == 0] = np.inf
                 tmpcl.append( 1./datacl[:self.lmax+1]**2)
 
@@ -219,9 +219,10 @@ class hillipop(object):
             nells = self.lmaxs[3]-self.lmins[3]+1
             nell += sum([nells[self.xspec2xfreq.index(k)] for k in range(self.nxfreq)])
         
+        #read
         data = fits.getdata( filename+ext+".fits").field(0)
         nel = int(np.sqrt(len(data)))
-        data = data.reshape( nel,nel)/1e24
+        data = data.reshape( nel,nel)/1e24  #muK^-2
         
         if nel != nell:
             raise ValueError('Incoherent covariance matrix')
@@ -232,11 +233,12 @@ class hillipop(object):
         '''
         Cut spectra given Multipole Ranges and flatten
         '''
+        acl = np.asarray(cl)
         xl = []
         for xf in range(self.nxfreq):
             lmin = self.lmins[mode][self.xspec2xfreq.index(xf)]
             lmax = self.lmaxs[mode][self.xspec2xfreq.index(xf)]
-            xl = xl+list(cl[xf,lmin:lmax+1])
+            xl = xl+list(acl[xf,lmin:lmax+1])
         return( np.array(xl))
     
     def _xspectra_to_xfreq( self, cl, weight):
@@ -271,7 +273,7 @@ class hillipop(object):
             
             #Compute Rl = Dl - Dlth
             Rl = self._xspectra_to_xfreq( [self.dldata[0][xs] - cal[xs]*dlmodel[xs] for xs in range(self.nxspec)], self.dlweight[0])
-
+        
         return( Rl)
     
     def compute_likelihood( self, pars, cl_boltz):
@@ -291,6 +293,7 @@ class hillipop(object):
         lnL: float
             Log likelihood for the given parameters -2ln(L)
         '''
+        
         #cl_boltz from Boltzmann (Cl in K^2)
         lth = np.arange( self.lmax+1)
         dlth = np.asarray(cl_boltz[:,lth]) * (lth*(lth+1)/2./np.pi * 1e12) #Dl in muK^2
