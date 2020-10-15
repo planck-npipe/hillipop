@@ -20,7 +20,7 @@ class hillipop(object):
     High-L Likelihood for Polarized Planck
     Spectra-based Gaussian-approximated likelihood with foreground models for cross-correlation spectra from Planck 100, 143 and 217GHz split-frequency maps
     """
-    def __init__( self, paramfile):
+    def __init__( self, paramfile, verbose=False):
         '''
         init Hillipop likelihood
         
@@ -31,7 +31,7 @@ class hillipop(object):
         '''
 
         pars = read_parameter( paramfile)
-        self.CMB = True
+        self.verbose = verbose
         self._modenames = ["TT","EE","BB","TE","ET"]
         self.nmap = int(pars["map"])
         self._set_modes( pars)
@@ -42,22 +42,25 @@ class hillipop(object):
         self._set_lists()
         
         #Multipole ranges
-        print( "Multipole Ranges")
+        if self.verbose: print( "Multipole Ranges")
         self._set_multipole_ranges( pars['MultipolesRange'])        
+
         #Data
-        print( "Read Data")
+        if self.verbose: print( "Read Data")
         self.dldata = self._read_dl_xspectra( pars['XSpectra'])
 
         #Weights
-        print( "Read Weights")
+        if self.verbose: print( "Read Weights")
         self.dlweight = self._read_dl_xerrors( pars['XSpectraErrors'])
 
         #Inverted Covariance matrix
-        print( "Read covmat")
+        if self.verbose: print( "Read covmat")
         self.invkll = self._read_invcovmatrix( pars['CovMatrix'])
 
+        #Nuisances
         self.parname = ["Aplanck"]
         for m in range(self.nmap): self.parname.append( "c%d" % m)
+
         #Init foregrounds TT
         if self.isTT:
             self.fgsTT = []
@@ -123,6 +126,8 @@ class hillipop(object):
         Return the (lmin,lmax) for each cross-spectra for each mode (TT,EE,BB,TE)
         array(nmode,nxspec)
         '''
+        if self.verbose: print( filename)
+        
         self.lmins = []
         self.lmaxs = []
         for m in range(4):
@@ -136,6 +141,8 @@ class hillipop(object):
         Read xspectra from Xpol [Dl in K^2]
         Output: Dl in muK^2
         '''
+        if self.verbose: print( filename)
+        
         dldata = []
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
@@ -156,7 +163,7 @@ class hillipop(object):
                 
                 dldata.append(tmpcl)
         return( np.transpose( dldata, ( 1,0,2)))
-                
+    
     def _read_dl_xerrors( self, filename):
         '''
         Read xspectra errors from Xpol [Dl in K^2]
@@ -172,12 +179,14 @@ class hillipop(object):
                     ell = np.array(data.field(0),int)
                     datacl = np.zeros( max(ell)+1)
                     datacl[ell] = data.field(1) * 1e12
+                    datacl[datacl == 0] = np.inf
                     tmpcl.append( 1./datacl[:self.lmax+1]**2)
                 #ET
                 data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), 4)
                 ell = np.array(data.field(0),int)
                 datacl = np.zeros( max(ell)+1)
                 datacl[ell] = data.field(1) * 1e12
+                datacl[datacl == 0] = np.inf
                 tmpcl.append( 1./datacl[:self.lmax+1]**2)
 
                 dlweight.append(tmpcl)
@@ -193,7 +202,7 @@ class hillipop(object):
         if self.isEE: ext += "EE"
         if self.isTE: ext += "TE"
         if self.isET: ext += "ET"
-        print( filename+ext+".fits")
+        if self.verbose: print( filename+ext+".fits")
 
         #count dim
         nell = 0
@@ -218,7 +227,7 @@ class hillipop(object):
             raise ValueError('Incoherent covariance matrix')
 
         return( data)
-
+    
     def _select_spectra( self, cl, mode=0):
         '''
         Cut spectra given Multipole Ranges and flatten
@@ -229,32 +238,54 @@ class hillipop(object):
             lmax = self.lmaxs[mode][self.xspec2xfreq.index(xf)]
             xl = xl+list(cl[xf,lmin:lmax+1])
         return( np.array(xl))
-
+    
     def _xspectra_to_xfreq( self, cl, weight):
         '''
         Average cross-spectra per cross-frequency
         '''
         xcl = np.zeros( (self.nxfreq, self.lmax+1))
         xw8 = np.zeros( (self.nxfreq, self.lmax+1))
-        k = 0
         for xs in range(self.nxspec):
             xcl[self.xspec2xfreq[xs]] += weight[xs] * cl[xs]
             xw8[self.xspec2xfreq[xs]] += weight[xs]
         
+        xw8[xw8 == 0] = np.inf
         return( xcl / xw8)
+    
+    def _compute_residuals( self, pars, cl_boltz):
+        #cl_boltz from Boltzmann (Cl in K^2)
+        lth = np.arange( self.lmax+1)
+        dlth = np.asarray(cl_boltz)[:,lth] * (lth*(lth+1)/2./np.pi * 1e12) #Dl in muK^2
+        
+        #nuisances
+        cal = []
+        for m1 in range(self.nmap):
+            for m2 in range(m1+1,self.nmap):
+                cal.append( pars["Aplanck"]*pars["Aplanck"] * (1.+pars["c%d" % m1]) * (1.+pars["c%d" % m2]))
+        
+        #TT
+        if self.isTT:
+            dlmodel = [dlth[0]]*self.nxspec
+            for fg in self.fgsTT:
+                dlmodel += fg.compute_dl( pars)
+            
+            #Compute Rl = Dl - Dlth
+            Rl = self._xspectra_to_xfreq( [self.dldata[0][xs] - cal[xs]*dlmodel[xs] for xs in range(self.nxspec)], self.dlweight[0])
+
+        return( Rl)
     
     def compute_likelihood( self, pars, cl_boltz):
         '''
         Compute likelihood from model out of Boltzmann code
         Units: Dl in muK^2
-
+        
         Parameters
         ----------
         pars: dict
               parameter values
         cl_boltz: array or arr2d
               CMB power spectrum (Cl in K^2)
-
+        
         Returns
         -------
         lnL: float
@@ -459,7 +490,7 @@ class cib_model( fgmodel):
                 ell = np.array( cldata.ELL, int)
                 tmpl = np.zeros( max(ell)+1)
                 ll2pi = ell*(ell+1)/2./np.pi
-                tmpl[ell] = ll2pi*(cldata.CL1HALO+cldata.CL1HALO)/self.gnu[freqs[f1]]/self.gnu[freqs[f2]]
+                tmpl[ell] = ll2pi*(cldata.CL1HALO+cldata.CL2HALO)/self.gnu[freqs[f1]]/self.gnu[freqs[f2]]
                 self.dl_cib.append(tmpl[:lmax+1])
     
     def compute_dl( self, pars):
