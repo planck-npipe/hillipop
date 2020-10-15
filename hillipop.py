@@ -112,14 +112,19 @@ class hillipop(object):
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
                 self.xspec2map.append( (m1,m2))
-                list_xfq.append( self.fqs[m1]*self.fqs[m2])
-        list_xfq = list(np.unique(list_xfq))
-
-        nxspec = len(self.xspec2map)
+        
+        list_fqs = []
+        for f1 in range(self.nfreq):
+            for f2 in range(f1, self.nfreq):
+                list_fqs.append( (f1,f2))
+        
+        freqs = list(np.unique(self.fqs))
         self.xspec2xfreq = []
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
-                self.xspec2xfreq.append( list_xfq.index(self.fqs[m1]*self.fqs[m2]))
+                f1 = freqs.index(self.fqs[m1])
+                f2 = freqs.index(self.fqs[m2])
+                self.xspec2xfreq.append( list_fqs.index((f1,f2)))
     
     def _set_multipole_ranges( self, filename):
         '''
@@ -147,50 +152,39 @@ class hillipop(object):
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
                 tmpcl = []
-                #TT EE BB TE
-                for m in range(4):
-                    data = fits.getdata( "%s_%d_%d.fits" % (filename,m1,m2), m)
+                #TT EE BB TE ET
+                for hdu in [1,2,3,4,4]:
+                    data = fits.getdata( "%s_%d_%d.fits" % (filename,m1,m2), hdu)
                     ell = np.array(data.field(0),int)
                     datacl = np.zeros( max(ell)+1)
                     datacl[ell] = data.field(1) * 1e12
                     tmpcl.append( datacl[:self.lmax+1])
-                #ET
-                data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), 4)
-                ell = np.array(data.field(0),int)
-                datacl = np.zeros( max(ell)+1)
-                datacl[ell] = data.field(1) * 1e12
-                tmpcl.append( datacl[:self.lmax+1])
                 
                 dldata.append(tmpcl)
-        return( np.transpose( dldata, ( 1,0,2)))
+        return( np.transpose( np.array(dldata), ( 1,0,2)))
     
     def _read_dl_xerrors( self, filename):
         '''
         Read xspectra errors from Xpol [Dl in K^2]
         Output: Dl 1/sigma_l^2 in muK^-4
         '''
+        if self.verbose: print( filename)
+        
         dlweight = []
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
                 tmpcl = []
-                #TT EE BB TE
-                for m in range(4):
-                    data = fits.getdata( "%s_%d_%d.fits" % (filename,m1,m2), m)
+                #TT EE BB TE ET
+                for hdu in [1,2,3,4,4]:
+                    data = fits.getdata( "%s_%d_%d.fits" % (filename,m1,m2), hdu)
                     ell = np.array(data.field(0),int)
                     datacl = np.zeros( max(ell)+1)
                     datacl[ell] = data.field(2) * 1e12
                     datacl[datacl == 0] = np.inf
                     tmpcl.append( 1./datacl[:self.lmax+1]**2)
-                #ET
-                data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), 4)
-                ell = np.array(data.field(0),int)
-                datacl = np.zeros( max(ell)+1)
-                datacl[ell] = data.field(2) * 1e12
-                datacl[datacl == 0] = np.inf
-                tmpcl.append( 1./datacl[:self.lmax+1]**2)
-
+                
                 dlweight.append(tmpcl)
-        return( np.transpose( dlweight, (1,0,2)))
+        return( np.transpose( np.array(dlweight), (1,0,2)))
     
     def _read_invcovmatrix( self, filename):        
         '''
@@ -203,7 +197,7 @@ class hillipop(object):
         if self.isTE: ext += "TE"
         if self.isET: ext += "ET"
         if self.verbose: print( filename+ext+".fits")
-
+        
         #count dim
         nell = 0
         if self.isTT:
@@ -222,11 +216,11 @@ class hillipop(object):
         #read
         data = fits.getdata( filename+ext+".fits").field(0)
         nel = int(np.sqrt(len(data)))
-        data = data.reshape( nel,nel)/1e24  #muK^-2
+        data = data.reshape( (nel,nel))/1e24  #muK^-4
         
         if nel != nell:
             raise ValueError('Incoherent covariance matrix')
-
+        
         return( data)
     
     def _select_spectra( self, cl, mode=0):
@@ -263,7 +257,7 @@ class hillipop(object):
         cal = []
         for m1 in range(self.nmap):
             for m2 in range(m1+1,self.nmap):
-                cal.append( pars["Aplanck"]*pars["Aplanck"] * (1.+pars["c%d" % m1]) * (1.+pars["c%d" % m2]))
+                cal.append( pars["Aplanck"]*pars["Aplanck"] * (1.+ pars["c%d" % m1] + pars["c%d" % m2]))
         
         #TT
         if self.isTT:
@@ -272,8 +266,9 @@ class hillipop(object):
                 dlmodel += fg.compute_dl( pars)
             
             #Compute Rl = Dl - Dlth
-            Rl = self._xspectra_to_xfreq( [self.dldata[0][xs] - cal[xs]*dlmodel[xs] for xs in range(self.nxspec)], self.dlweight[0])
-        
+            Rspec = [self.dldata[0][xs] - cal[xs]*dlmodel[xs] for xs in range(self.nxspec)]
+            Rl = self._xspectra_to_xfreq( Rspec, self.dlweight[0])
+#            Rl = Rspec
         return( Rl)
     
     def compute_likelihood( self, pars, cl_boltz):
@@ -314,7 +309,7 @@ class hillipop(object):
             Rl = self._xspectra_to_xfreq( [self.dldata[0][xs] - cal[xs]*dlmodel[xs] for xs in range(self.nxspec)], self.dlweight[0])
             Xl = self._select_spectra( Rl)
         
-        return( np.dot( np.dot( Xl, self.invkll), Xl))
+        return( Xl.dot(self.invkll).dot(Xl))
 
 #------------------------------------------------------------------------------------------------
 
