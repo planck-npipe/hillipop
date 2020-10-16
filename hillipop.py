@@ -94,10 +94,10 @@ class hillipop(object):
 
 
     def _set_modes(self,pars):
-        self.isTT = True if int(pars["TT"]) == 1 else False
-        self.isEE = True if int(pars["EE"]) == 1 else False
-        self.isTE = True if int(pars["TE"]) == 1 else False
-        self.isET = True if int(pars["ET"]) == 1 else False
+        self.isTT = ( int(pars["TT"]) == 1 )
+        self.isEE = ( int(pars["EE"]) == 1 )
+        self.isTE = ( int(pars["TE"]) == 1 )
+        self.isET = ( int(pars["ET"]) == 1 )
     
     def _get_freqs(self,pars):
         fqs = []
