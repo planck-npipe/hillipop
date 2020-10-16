@@ -80,14 +80,14 @@ class hillipop(object):
             if "SZxCIB" in pars.keys():
                 fgsTT.append( szxcib_model( self.lmax, self.fqs, self.parname, pars["SZxCIB"]))
         self.fgs.append(fgsTT)
-    
+        
         #Init foregrounds EE
         fgsEE = []
         if self.isEE:
             if "Dust" in pars.keys():
                 fgsEE.append( dust_model( self.lmax, self.fqs, self.parname, pars["Dust"], mode="EE"))
         self.fgs.append(fgsEE)
-
+        
         #Init foregrounds TE
         fgsTE = []
         if self.isTE:
@@ -166,7 +166,7 @@ class hillipop(object):
                     datacl[ell] = data.field(field) * 1e12
                     tmpcl.append( datacl[:self.lmax+1])
                 
-                data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), hdu)
+                data = fits.getdata( "%s_%d_%d.fits" % (filename,m2,m1), 4) #ET
                 ell = np.array(data.field(0),int)
                 datacl = np.zeros( max(ell)+1)
                 datacl[ell] = data.field(field) * 1e12
@@ -244,7 +244,7 @@ class hillipop(object):
         
         #Data
         dldata = self.dldata[mode]
-
+        
         #Model
         dlmodel = [dlth[mode]]*self.nxspec
         for fg in self.fgs[mode]:
@@ -297,22 +297,21 @@ class hillipop(object):
             Xl = Xl + self._select_spectra( Rl, mode=1)
         
         if self.isTE or self.isET:
+            Rl = 0
+            Wl = 0
             #compute residuals Rl = Dl - Dlth
             if self.isTE:
                 Rspec = self._compute_residuals( pars, dlth, mode=2)
                 RlTE,WlTE = self._xspectra_to_xfreq( Rspec, self.dlweight[2], normed=False)
+                Rl = Rl + RlTE
+                Wl = Wl + WlTE
             if self.isET:
                 Rspec = self._compute_residuals( pars, dlth, mode=3)
                 RlET,WlET = self._xspectra_to_xfreq( Rspec, self.dlweight[3], normed=False)                
-            if self.isTE:
-                if self.isET:
-                    Rl = (RlTE+RlET) / (WlTE + WlET)
-                else:
-                    Rl = RlTE/WlTE
-            elif self.isET:
-                Rl = RlET/WlET
+                Rl = Rl + RlET
+                Wl = Wl + WlET
             #select multipole range
-            Xl = Xl + self._select_spectra( Rl, mode=2)
+            Xl = Xl + self._select_spectra( Rl/Wl, mode=2)
         
         Xl = np.array(Xl)
         chi2 = Xl.dot(self.invkll).dot(Xl)
