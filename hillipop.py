@@ -99,7 +99,7 @@ class hillipop(object):
             if "Dust" in pars.keys():
                 fgsET.append( dust_model( self.lmax, self.fqs, self.parname, pars["Dust"], mode="ET"))
         self.fgs.append(fgsET)
-
+    
     def _set_modes(self,pars):
         self.isTT = ( int(pars["TT"]) == 1 )
         self.isEE = ( int(pars["EE"]) == 1 )
@@ -112,7 +112,7 @@ class hillipop(object):
         for f in range(self.nmap):
             fqs.append( int(pars["freq%d"%f]))
         return( fqs)
-
+    
     def _set_lists(self):
         self.xspec2map = []
         list_xfq = []
@@ -274,10 +274,9 @@ class hillipop(object):
         '''
         
         #cl_boltz from Boltzmann (Cl in K^2)
-        clth = np.asarray( cl_boltz)
         lth = np.arange( self.lmax+1)
         imodes = [0,1,3,3] #TT, EE, TE, ET
-        dlth = np.asarray(clth[imodes])[:,lth] * (lth*(lth+1)/2./np.pi * 1e12) #Dl in muK^2
+        dlth = np.asarray(cl_boltz)[imodes,:][:,lth] * (lth*(lth+1)/2./np.pi * 1e12) #Dl in muK^2
         
         #Create Data Vector
         Xl = []

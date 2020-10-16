@@ -20,7 +20,7 @@ class ps_radio( fgmodel):
         self.freqs = freqs
         self._shift = 0 if auto else 1
         self.name = "PS radio"
-        parname.append('Aradio')
+        if 'Aradio' not in parname: parname.append('Aradio')
         ell = np.arange( self.lmax+1)
         self.dl_ps = ell*(ell+1)/2./np.pi
 
@@ -48,7 +48,7 @@ class ps_dusty( fgmodel):
         self.freqs = freqs
         self._shift = 0 if auto else 1
         self.name = "PS dusty"
-        parname.append('Adusty')
+        if 'Adusty' not in parname: parname.append('Adusty')
         ell = np.arange( self.lmax+1)
         self.dl_ps = ell*(ell+1)/2./np.pi
 
@@ -72,10 +72,10 @@ class dust_model( fgmodel):
         self._shift = 0 if auto else 1
         self.name = "Dust"
         self.mode = mode
-        if mode == 'TT': parname.append('AdustTT')
-        if mode == 'EE': parname.append('AdustPP')
-        if mode == 'TE': parname.append('AdustTP')
-        if mode == 'ET': parname.append('AdustTP')
+        if mode == 'TT' and 'AdustTT' not in parname: parname.append('AdustTT')
+        if mode == 'EE' and 'AdustPP' not in parname: parname.append('AdustPP')
+        if mode == 'TE' and 'AdustTP' not in parname: parname.append('AdustTP')
+        if mode == 'ET' and 'AdustTP' not in parname: parname.append('AdustTP')
 
         nfreq = len(freqs)
         if self.mode == 'TT':
@@ -116,7 +116,7 @@ class sz_model( fgmodel):
         self.lmax = lmax
         self._shift = 0 if auto else 1
         self.name = "tSZ"
-        parname.append('Asz')
+        if 'Asz' not in parname: parname.append('Asz')
         nfreq = len(freqs)
         self.dl_sz = []
         dldata = fits.getdata( filename)
@@ -137,7 +137,7 @@ class cib_model( fgmodel):
         self.lmax = lmax
         self._shift = 0 if auto else 1
         self.name = "CIB"
-        parname.append('Acib')
+        if 'Acib' not in parname: parname.append('Acib')
         nfreq = len(freqs)
         self.dl_cib = []
         for f1 in range(nfreq):
@@ -160,7 +160,7 @@ class ksz_model( fgmodel):
         self.lmax = lmax
         self._shift = 0 if auto else 1
         self.name = "kSZ"
-        parname.append('Aksz')
+        if 'Aksz' not in parname: parname.append('Aksz')
         nfreq = len(freqs)
         self.dl_ksz = []
         dltemp = fits.getdata( filename)
@@ -181,7 +181,7 @@ class szxcib_model( fgmodel):
         self.lmax = lmax
         self._shift = 0 if auto else 1
         self.name = "SZxCIB"
-        parname.append('Aszxcib')
+        if 'Aszxcib' not in parname: parname.append('Aszxcib')
         nfreq = len(freqs)
         self.dl_szxcib = []
         for f1 in range(nfreq):
