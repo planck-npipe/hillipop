@@ -22,3 +22,12 @@ Requirements
 * `numpy`
 * `scipy`
 * `astropy`
+
+Install
+-------
+
+Likelihood versions
+-------------------
+
+* Planck 2018 (PR3)
+* Planck 2020 (PR4)
