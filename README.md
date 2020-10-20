@@ -1,4 +1,5 @@
-**HiLLiPoP: High-L Likelihood Polarized for Planck**
+HiLLiPoP: High-L Likelihood Polarized for Planck
+================================================
 
 ``Hillipop`` is a multifrequency CMB likelihood for Planck data. The likelihood is a spectrum-based Gaussian approximation for cross-correlation spectra from Planck 100, 143 and 217GHz split-frequency maps, with semi-analytic estimates of the Cl covariance matrix based on the data. The cross-spectra are debiased from the effects of the mask and the beam leakage using [``Xpol``](https://gitlab.in2p3.fr/tristram/Xpol) (a generalization to polarization of the algorithm presented in [Tristram et al. 2005](https://arxiv.org/abs/astro-ph/0405575)) before being compared to the model, which includes CMB and foreground residuals.
 
@@ -13,3 +14,11 @@ The model consists of a linear combination of the CMB power spectrum and several
 HiLLiPoP has been used as an alternative to the public Planck likelihood in the 2013 and 2015 Planck releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Planck Collaboration XI 2016](https://arxiv.org/abs/1507.02704)], and is described in detail in [Couchot et al. (2017)](https://arxiv.org/abs/1609.09730).
 
 It is interfaced with the ``cobaya`` MCMC sampler.
+
+Requirements
+------------
+* Python >= 3.5
+* `healpy`
+* `numpy`
+* `scipy`
+* `astropy`
