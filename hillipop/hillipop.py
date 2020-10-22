@@ -24,8 +24,8 @@ class Hillipop(_InstallableLikelihood):
     """
 
     multipoles_range_file: Optional[str]
-    nmap: Optional[int]
     frequencies: Optional[list]
+    foregrounds: list
 
     def initialize(self):
         self.log.info("Initialising.")
@@ -50,10 +50,8 @@ class Hillipop(_InstallableLikelihood):
                 self.data_folder,
             )
 
-        if self.nmap != len(self.frequencies):
-            raise LoggedError(self.log, "Number of maps different from the number of frequencies")
-
         self._is_mode = [self.TT, self.EE, self.TE or self.ET]
+        self.nmap = len(self.frequencies)
         self.nfreq = len(np.unique(self.frequencies))
         self.nxfreq = self.nfreq * (self.nfreq + 1) // 2
         self.nxspec = self.nmap * (self.nmap - 1) // 2

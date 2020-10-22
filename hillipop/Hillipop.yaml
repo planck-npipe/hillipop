@@ -4,7 +4,6 @@ BB: false
 TE: false
 ET: false
 
-nmap: 6
 frequencies:
   - 100
   - 100
