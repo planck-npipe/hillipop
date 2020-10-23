@@ -62,7 +62,7 @@ You should use the `cobaya-install` binary to automatically download the data ne
 `Hillipop` likelihood
 
 ```shell
-$ cobaya-install /where/to/clone/tests/test_hillipop.yaml -m /where/to/put/packages
+$ cobaya-install /where/to/clone/examples/test_hillipop.yaml -m /where/to/put/packages
 ```
 
 Data and code such as [CAMB](https://github.com/cmbant/CAMB) will be downloaded and installed within
