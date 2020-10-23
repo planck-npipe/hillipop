@@ -39,6 +39,22 @@ Requirements
 Install
 -------
 
+You first need to clone this repository to some location
+
+```shell
+$ git clone https://gitlab.in2p3.fr/tristram/hillipop.git /where/to/clone
+```
+
+Then you can install the `Hillipop` likelihood and its dependencies *via*
+
+```shell
+$ pip install -e /where/to/clone
+```
+
+The ``-e`` option allow the developer to make changes within the `Hillipop` directory without having
+to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
+remove the ``-e`` option.
+
 Likelihood versions
 -------------------
 
