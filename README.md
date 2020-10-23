@@ -30,11 +30,11 @@ al. (2017)](https://arxiv.org/abs/1609.09730).
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
-Requirements
-------------
-* Python >= 3.5
-* `numpy`
-* `astropy`
+Likelihood versions
+-------------------
+
+* Planck 2018 (PR3)
+* Planck 2020 (PR4)
 
 Install
 -------
@@ -55,8 +55,22 @@ The ``-e`` option allow the developer to make changes within the `Hillipop` dire
 to reinstall at every changes. If you plan to just use the likelihood and do not develop it, you can
 remove the ``-e`` option.
 
-Likelihood versions
--------------------
+Installing Hillipop likelihood data
+-----------------------------------
 
-* Planck 2018 (PR3)
-* Planck 2020 (PR4)
+You should use the `cobaya-install` binary to automatically download the data needed by the
+`Hillipop` likelihood
+
+```shell
+$ cobaya-install /where/to/clone/tests/test_hillipop.yaml -m /where/to/put/packages
+```
+
+Data and code such as [CAMB](https://github.com/cmbant/CAMB) will be downloaded and installed within
+the ``/where/to/put/packages`` directory. For more details, you can have a look to `cobaya`
+[documentation](https://cobaya.readthedocs.io/en/latest/installation_cosmo.html).
+
+Requirements
+------------
+* Python >= 3.5
+* `numpy`
+* `astropy`
