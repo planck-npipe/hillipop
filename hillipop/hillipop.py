@@ -162,7 +162,7 @@ class Hillipop(_InstallableLikelihood):
         self.log.debug("Setting multipole ranges")
         self.lmins = []
         self.lmaxs = []
-        for hdu in [0, 1, 3, 4]:  # file HDU [TT,EE,BB,TE,ET]
+        for hdu in [0, 1, 3, 3]:  # file HDU [TT,EE,BB,TE]
             data = fits.getdata(os.path.join(self.data_folder, self.multipoles_range_file), hdu + 1)
             self.lmins.append(np.array(data.field(0), int))
             self.lmaxs.append(np.array(data.field(1), int))
