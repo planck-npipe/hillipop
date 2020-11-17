@@ -15,6 +15,7 @@ from cobaya.tools import are_different_params_lists
 from hillipop import foregrounds_v3 as fg
 from hillipop import tools
 
+tagnames = ["TT","EE","BB","TE","TB","EB"]
 
 class Hillipop(_InstallableLikelihood):
     """High-L Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
@@ -41,7 +42,7 @@ class Hillipop(_InstallableLikelihood):
         data_file_path = os.path.normpath(
             getattr(self, "path", None) or os.path.join(self.packages_path, "data")
         )
-
+        
         self.data_folder = os.path.join(data_file_path, self.data_folder)
         if not os.path.exists(self.data_folder):
             raise LoggedError(
@@ -49,28 +50,28 @@ class Hillipop(_InstallableLikelihood):
                 "The 'data_folder' directory does not exist. Check the given path [%s].",
                 self.data_folder,
             )
-
+        
         self._is_mode = [self.TT, self.EE, self.TE or self.ET]
         self.nmap = len(self.frequencies)
         self.nfreq = len(np.unique(self.frequencies))
         self.nxfreq = self.nfreq * (self.nfreq + 1) // 2
         self.nxspec = self.nmap * (self.nmap - 1) // 2
         self._set_lists()
-
+        
         self.log.debug("mode = {}".format(self._is_mode))
         self.log.debug("frequencies = {}".format(self.frequencies))
-
+        
         # Multipole ranges
         self._set_multipole_ranges()
-
+        
         # Data
         self.dldata = self._read_dl_xspectra(field=1)
-
+        
         # Weights
         dlsig = self._read_dl_xspectra(field=2)
         dlsig[dlsig == 0] = np.inf
         self.dlweight = 1.0 / dlsig ** 2
-
+        
         # Inverted Covariance matrix
         self.invkll = self._read_invcovmatrix()
 
@@ -162,10 +163,13 @@ class Hillipop(_InstallableLikelihood):
         self.log.debug("Setting multipole ranges")
         self.lmins = []
         self.lmaxs = []
-        for hdu in [0, 1, 3, 4]:  # file HDU [TT,EE,BB,TE,ET]
+        for hdu in [0, 1, 3, 3]:  # file HDU [TT,EE,BB,TE]
+            self.log.debug("%s" %(tagnames[hdu])
             data = fits.getdata(os.path.join(self.data_folder, self.multipoles_range_file), hdu + 1)
             self.lmins.append(np.array(data.field(0), int))
             self.lmaxs.append(np.array(data.field(1), int))
+            self.log.debug( "lmin: ", np.array(data.field(0), int))
+            self.log.debug( "lmax: ", np.array(data.field(1), int))
         self.lmax = np.max([max(l) for l in self.lmaxs])
 
     def _read_dl_xspectra(self, field=1):
@@ -300,13 +304,11 @@ class Hillipop(_InstallableLikelihood):
             Log likelihood for the given parameters -2ln(L)
         """
 
-        # cl_boltz from Boltzmann (Cl in K^2)
+        # cl_boltz from Boltzmann (Cl in muK^2)
         lth = np.arange(self.lmax + 1)
         dlth = []
         for mode in ["tt", "ee", "te", "te"]:
             dlth += [cl[mode][lth]]
-        # imodes = [0, 1, 3, 3]  # TT, EE, TE, ET
-        # dlth = (np.asarray(cl_boltz).T)[imodes, :][:, lth]
         dlth = np.asarray(dlth)
 
         # Create Data Vector

@@ -1,3 +1,5 @@
+debug: true
+
 TT: true
 EE: false
 BB: false
@@ -50,10 +52,10 @@ params:
     latex: c_5
 
   Aradio:
-    value: 1.61984
+    value: 1.0
     latex: A_\mathrm{radio}^\mathrm{PS}
   Adusty:
-    value: 0.781192
+    value: 1.0
     latex: A_\mathrm{dust}^\mathrm{PS}
   AdustTT:
     value: 1.0
@@ -71,7 +73,7 @@ params:
     value: 1.0
     latex: A_\mathrm{CIB}
   Aksz:
-    value: 0.6
+    value: 1.0
     latex: A_\mathrm{kSZ}
   Aszxcib:
     value: 1.0
