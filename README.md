@@ -7,7 +7,7 @@ maps, with semi-analytic estimates of the Cl covariance matrix based on the data
 are debiased from the effects of the mask and the beam leakage using
 [``Xpol``](https://gitlab.in2p3.fr/tristram/Xpol) (a generalization to polarization of the algorithm
 presented in [Tristram et al. 2005](https://arxiv.org/abs/astro-ph/0405575)) before being compared
-to the model, which includes CMB and foreground residuals. They cover the multipoles from $\ell$=30 to $\ell$=2500.
+to the model, which includes CMB and foreground residuals. They cover the multipoles from &ell;=30 to &ell;=2500.
 
 The model consists of a linear combination of the CMB power spectrum and several foregrounds
 residuals. These are:
