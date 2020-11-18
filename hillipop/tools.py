@@ -212,7 +212,7 @@ class hlp_likelihood():
                 nell += np.sum([nells[self.xspec2xfreq.index(k)] for k in range(self.nxfreq)])
         
         return nell
-
+    
     def _select_spectra(self, cl, mode=0):
         """
         Cut spectra given Multipole Ranges and flatten
@@ -225,7 +225,7 @@ class hlp_likelihood():
             lmax = self.lmaxs[mode][self.xspec2xfreq.index(xf)]
             xl += list(acl[xf, lmin : lmax + 1])
         return xl
-
+    
     def _xspectra_to_xfreq(self, cl, weight, normed=True):
         """
         Average cross-spectra per cross-frequency
@@ -241,28 +241,28 @@ class hlp_likelihood():
             return xcl / xw8
         else:
             return (xcl, xw8)
-
+    
     def _compute_residuals(self, pars, dlth, mode=0):
-
+        
         # nuisances
         cal = []
         for m1 in range(self.nmap):
             for m2 in range(m1 + 1, self.nmap):
                 cal.append(pars["Aplanck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
-
+        
         # Data
         dldata = self.dldata[mode]
-
+        
         # Model
         dlmodel = [dlth[mode]] * self.nxspec
         for fg in self.fgs[mode]:
             dlmodel += fg.compute_dl(pars)
-
+        
         # Compute Rl = Dl - Dlth
         Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self.nxspec)])
-
+        
         return Rspec
-
+    
     def compute_chi2( self, cl, **params_values):
         """
         Compute likelihood from model out of Boltzmann code
@@ -333,7 +333,7 @@ class hlp_likelihood():
 
 
 # ------------------------------------------------------------------------------------------------
-# Esternal tools
+# External tools
 # ------------------------------------------------------------------------------------------------
 
 def create_bin_file( filename, lbinTT, lbinEE, lbinBB, lbinTE, lbinET):
@@ -493,17 +493,22 @@ class Bins(object):
                 q[a:z+1, b] = 1 / ell2[a:z+1]
         
         return p, q
-
-    def bin_spectra(self, spectra):
+    
+    def bin_spectra(self, spectra, Dl=False):
         """
-        Average spectra in bins specified by lmin, lmax and delta_ell,
-        weighted by `l(l+1)/2pi`.
+        Average spectra with defined bins
+        can be weighted by `l(l+1)/2pi`.
         Return Cb
         """
         spectra = np.asarray(spectra)
         minlmax = min([spectra.shape[-1] - 1,self.lmax])
         
-        _p, _q = self._bin_operators()
+        _p, _q = self._bin_operators(Dl=Dl)
         return np.dot(spectra[..., :minlmax+1], _p.T[:minlmax+1,...])
-
-
+    
+    def bin_covariance( self, clcov):
+        """
+        Average covariance with defined bins
+        """
+        p,q = self._bin_operators(cov=True)
+        return( np.matmul( p, np.matmul( clcov, q)))
