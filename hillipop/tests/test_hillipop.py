@@ -46,17 +46,17 @@ class HillipopTest(unittest.TestCase):
 
     def test_hillipop(self):
         import camb
-
+        
         camb_cosmo = cosmo_params.copy()
         camb_cosmo.update({"lmax": 2500, "lens_potential_accuracy": 1})
         pars = camb.set_params(**camb_cosmo)
         results = camb.get_results(pars)
         powers = results.get_cmb_power_spectra(pars, CMB_unit="muK")
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
-
+        
         for mode, chi2 in chi2s.items():
             from hillipop import Hillipop
-
+            
             my_lik = Hillipop(
                 {
                     "packages_path": packages_path,
@@ -66,10 +66,10 @@ class HillipopTest(unittest.TestCase):
                     "EE": "EE" in mode,
                 }
             )
-
+            
             loglike = my_lik.loglike(cl_dict, **nuisance_params)
             self.assertAlmostEqual(-2 * loglike, chi2, 1)
-
+    
     def test_cobaya(self):
         info = {
             "debug": True,
@@ -81,7 +81,7 @@ class HillipopTest(unittest.TestCase):
             "modules": packages_path,
         }
         from cobaya.model import get_model
-
+        
         model = get_model(info)
         my_hillipop = model.likelihood["hillipop.Hillipop"]
         chi2 = -2 * model.loglikes(nuisance_params)[0]

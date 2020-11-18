@@ -64,7 +64,7 @@ class TT(_InstallableLikelihood):
                                          self.foregrounds,
                                          self.log, data_folder=self.data_folder,
                                          TT=True, EE=False, TE=False, ET=False)
-
+    
     def get_requirements(self):
         return dict(Cl={mode: self.lmax for mode in ["tt"]})
 

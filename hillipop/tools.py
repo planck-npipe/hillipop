@@ -136,7 +136,7 @@ class hlp_likelihood():
         self.log.debug("Define multipole ranges")
         if not os.path.exists( filename):
             raise ValueError( "File missing {}".format(filename))
-
+        
         lmins = []
         lmaxs = []
         for hdu in [0, 1, 3, 3]:  # file HDU [TT,EE,BB,TE]
@@ -147,7 +147,7 @@ class hlp_likelihood():
             lmaxs.append(np.array(data.field(1), int))
             self.log.debug( "lmin: {}".format(np.array(data.field(0), int)))
             self.log.debug( "lmax: {}".format(np.array(data.field(1), int)))
-
+        
         return( lmins, lmaxs)
 
     def _read_dl_xspectra(self, basename, field=1):
@@ -283,8 +283,8 @@ class hlp_likelihood():
         
         # cl_boltz from Boltzmann (Cl in muK^2)
         lth = np.arange(self.lmax + 1)
-        clth = np.asarray(cl)
-        dlth = np.asarray(clth[:,lth]*lth*(lth+1)/2./np.pi)
+        clth = np.asarray(cl)[[0,1,3,3]]
+        dlth = np.asarray(clth[:,lth]*lth*(lth+1)/2./np.pi) #select TT,EE,TE,TE
         
         # Create Data Vector
         Xl = []
@@ -323,7 +323,8 @@ class hlp_likelihood():
         
         Xl = np.array(Xl)
         chi2 = Xl.dot(self.invkll).dot(Xl)
-        
+
+        self.log.debug( "chi2=%f / nodf=%d" % (chi2, len(Xl)))
         return chi2
 
 # ------------------------------------------------------------------------------------------------
