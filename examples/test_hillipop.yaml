@@ -1,12 +1,10 @@
 debug: True
 
 likelihood:
-  hillipop.Hillipop:
-    TT: true
-    EE: false
-    BB: false
-    TE: false
-    ET: false
+  hillipop.TT: null
+  hillipop.EE: null
+  hillipop.TE: null
+  hillipop.TTTEEE: null
 
 params:
   # Sampled
