@@ -1,0 +1,49 @@
+
+frequencies:
+  - 100
+  - 100
+  - 143
+  - 143
+  - 217
+  - 217
+
+data_folder: Hillipop
+
+multipoles_range_file: Binning/binning.fits
+xspectra_basename: Data/DX11d_r3_HM/LALmaskSuperExt-ConservativeCO/spectra/cross_DX11d_HM_SuperExtCO
+xspectra_errors_basename: Data/DX11d_r3_HM/LALmaskSuperExt-ConservativeCO/spectra/cross_DX11d_HM_SuperExtCO
+covariance_matrix_basename: Data/DX11d_r3_HM/LALmaskSuperExt-ConservativeCO/pclcvm/invfll_DX11dr3HM_SG_pack
+
+foregrounds:
+  dust: Foregrounds/Dust_LALmaskSuperExt-ConservativeCO_DX11d
+  SZ: Foregrounds/ClSZ_poiss_corr_MD2_cppp_bestCl_NILC_extra12_cibps_lmax10000.fits
+  kSZ: Foregrounds/ksz_shaw_bat_PWAS_MD_tau062.fits
+  CIB: Foregrounds/CIB_v3
+  SZxCIB: Foregrounds/SZxCIB
+
+params:
+  Aplanck:
+    value: 1.0
+    latex: A_\mathrm{planck}
+  c0:
+    value: 0.0
+    latex: c_0
+  c1:
+    value: 0.0
+    latex: c_1
+  c2:
+    value: 0.0
+    latex: c_2
+  c3:
+    value: 0.0
+    latex: c_3
+  c4:
+    value: 0.0
+    latex: c_4
+  c5:
+    value: 0.0
+    latex: c_5
+
+  AdustTP:
+    value: 1.0
+    latex: A_\mathrm{dust}^\mathrm{TT}

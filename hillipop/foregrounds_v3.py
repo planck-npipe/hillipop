@@ -75,7 +75,7 @@ class dust_model(fgmodel):
         _hnu_P = {100: 0.01703, 143: 0.03605, 217: 0.12498}
         self.name = "Dust"
         self.mode = mode
-
+        
         if self.mode == "TT":
             icol = 1
             hnuA = hnuB = _hnu_T
@@ -90,7 +90,7 @@ class dust_model(fgmodel):
             icol = 5
             hnuA = _hnu_P
             hnuB = _hnu_T
-
+        
         nfreq = len(freqs)
         self.dl_dust = []
         for f1 in range(nfreq):

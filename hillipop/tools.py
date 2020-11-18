@@ -1,30 +1,340 @@
 #------------------------------------------------------------------------------------------------
 #Hillipop Tools
 #------------------------------------------------------------------------------------------------
+import os
 import numpy as np
 from numpy.linalg import *
 import astropy.io.fits as fits
 import scipy.ndimage as nd
 
+from hillipop import foregrounds_v3 as fg
 
-def read_parameter( filename):
-    d = {}
-    FILE = open(filename)
-    for line in FILE:
-        name, value = line.split("=")
-        value = value.strip()
-        if " " in value:
-            value = map(str, value.split())
+
+tagnames = ["TT","EE","TE","ET"]
+
+
+# ------------------------------------------------------------------------------------------------
+# Likelihood
+# ------------------------------------------------------------------------------------------------
+
+class hlp_likelihood():
+    """High-L Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    foreground models for cross-correlation spectra from Planck 100, 143 and 217GHz split-frequency
+    maps
+
+    """
+
+    def __init__(self, multipoles_range_file, xspectra_basename, xerrors_basename, covariance_matrix_basename,
+                 frequencies, foregrounds, log, data_folder = "",
+                 TT=False, EE=False, TE=False, ET=False):
+        self.log = log
+        self.log.info("Initialising.")
+
+        self.frequencies = frequencies
+        self.nmap = len(self.frequencies)
+        self.nfreq = len(np.unique(self.frequencies))
+        self.nxfreq = self.nfreq*(self.nfreq+1) // 2
+        self.nxspec = self.nmap*(self.nmap-1) // 2
+        self.xspec2xfreq = self._xspec2xfreq()
+
+        self.TT, self.EE, self.TE, self.ET = TT, EE, TE, ET
+        self._is_mode = [TT,EE,TE,ET] #TT,EE,TE,ET
+        self.log.debug("mode = {}".format(self._is_mode))
+        self.log.debug("frequencies = {}".format(self.frequencies))
+        
+        # Multipole ranges
+        filename = os.path.join(data_folder,multipoles_range_file)
+        self.lmins,self.lmaxs = self._set_multipole_ranges( filename)
+        self.lmax = np.max([max(l) for l in self.lmaxs])
+        
+        # Data
+        basename = os.path.join(data_folder,xspectra_basename)
+        self.dldata = self._read_dl_xspectra(basename, field=1)
+        
+        # Weights
+        basename = os.path.join(data_folder,xerrors_basename)
+        dlsig = self._read_dl_xspectra(basename, field=2)
+        dlsig[dlsig == 0] = np.inf
+        self.dlweight = 1.0 / dlsig ** 2
+        
+        # Inverted Covariance matrix
+        filename = self._get_matrix_name( data_folder, covariance_matrix_basename)
+        self.log.info( "Read {}".format( filename))
+        self.invkll = self._read_invcovmatrix(filename)
+
+        # Foregrounds
+        self.fgs = []  # list of foregrounds per mode [TT,EE,TE,ET]
+        # Init foregrounds TT
+        fgsTT = []
+        if self.TT:
+            fgsTT.append(fg.ps_radio(self.lmax, self.frequencies))
+            fgsTT.append(fg.ps_dusty(self.lmax, self.frequencies))
+
+            fg_lookup = {
+                "dust": fg.dust_model,
+                "SZ": fg.sz_model,
+                "CIB": fg.cib_model,
+                "kSZ": fg.ksz_model,
+                "SZxCIB": fg.szxcib_model,
+            }
+            for name, model in fg_lookup.items():
+                if not foregrounds.get(name):
+                    continue
+                self.log.debug("Adding '{}' foreground for TT".format(name))
+                filename = os.path.join(data_folder, foregrounds.get(name))
+                kwargs = dict(mode="TT") if name == "dust" else {}
+                fgsTT.append(model(self.lmax, self.frequencies, filename, **kwargs))
+        self.fgs.append(fgsTT)
+
+        # Get dust filename
+        dust_filename = (
+            os.path.join(data_folder, foregrounds.get("dust"))
+            if foregrounds.get("dust")
+            else None
+        )
+
+        # Init foregrounds EE
+        fgsEE = []
+        if self.EE:
+            if dust_filename:
+                fgsEE.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="EE"))
+        self.fgs.append(fgsEE)
+
+        # Init foregrounds TE
+        fgsTE = []
+        if self.TE:
+            if dust_filename:
+                fgsTE.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="TE"))
+        self.fgs.append(fgsTE)
+        fgsET = []
+        if self.ET:
+            if dust_filename:
+                fgsET.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="ET"))
+        self.fgs.append(fgsET)
+
+    def _xspec2xfreq( self):
+        list_fqs = []
+        for f1 in range(self.nfreq):
+            for f2 in range(f1, self.nfreq):
+                list_fqs.append((f1, f2))
+
+        freqs = list(np.unique(self.frequencies))
+        spec2freq = []
+        for m1 in range(self.nmap):
+            for m2 in range(m1 + 1, self.nmap):
+                f1 = freqs.index(self.frequencies[m1])
+                f2 = freqs.index(self.frequencies[m2])
+                spec2freq.append(list_fqs.index((f1, f2)))
+        
+        return spec2freq
+
+    def _set_multipole_ranges(self, filename):
+        """
+        Return the (lmin,lmax) for each cross-spectra for each mode (TT, EE, TE, ET)
+        array(nmode,nxspec)
+        """
+        self.log.debug("Define multipole ranges")
+        if not os.path.exists( filename):
+            raise ValueError( "File missing {}".format(filename))
+
+        lmins = []
+        lmaxs = []
+        for hdu in [0, 1, 3, 3]:  # file HDU [TT,EE,BB,TE]
+            tags = ["TT","EE","BB","TE","TB","EB"]
+            self.log.debug("%s" %(tags[hdu]))
+            data = fits.getdata(filename, hdu + 1)
+            lmins.append(np.array(data.field(0), int))
+            lmaxs.append(np.array(data.field(1), int))
+            self.log.debug( "lmin: {}".format(np.array(data.field(0), int)))
+            self.log.debug( "lmax: {}".format(np.array(data.field(1), int)))
+
+        return( lmins, lmaxs)
+
+    def _read_dl_xspectra(self, basename, field=1):
+        """
+        Read xspectra from Xpol [Dl in K^2]
+        Output: Dl in muK^2
+        """
+        self.log.debug("Reading cross-spectra {}".format("errors" if field == 2 else ""))
+
+        dldata = []
+        for m1 in range(self.nmap):
+            for m2 in range(m1 + 1, self.nmap):
+                tmpcl = []
+                for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
+                    filename = "{}_{}_{}.fits".format(basename, m1, m2)
+                    if mode == "ET":
+                        filename = "{}_{}_{}.fits".format(basename, m2, m1)
+                    if not os.path.exists( filename):
+                        raise ValueError( "File missing {}".format(filename))
+                    data = fits.getdata(filename, hdu)
+                    ell = np.array(data.field(0), int)
+                    datacl = np.zeros(np.max(ell) + 1)
+                    datacl[ell] = data.field(field) * 1e12
+                    tmpcl.append(datacl[:self.lmax+1])
+
+                dldata.append(tmpcl)
+
+        return np.transpose(np.array(dldata), (1, 0, 2))
+
+    def _read_invcovmatrix(self,filename):
+        """
+        Read xspectra inverse covmatrix from Xpol [Dl in K^-4]
+        Output: invkll [Dl in muK^-4]
+        """
+        self.log.debug("Covariance matrix file: {}".format(filename))
+        if not os.path.exists( filename):
+            raise ValueError( "File missing {}".format(filename))
+
+        data = fits.getdata(filename).field(0)
+        nel = int(np.sqrt(len(data)))
+        data = data.reshape((nel, nel)) / 1e24  # muK^-4
+
+        nell = self._get_matrix_size()
+        if nel != nell:
+            raise ValueError( "Incoherent covariance matrix (read:%d, expected:%d)" % (nel, nell))
+        
+        return data
+
+    def _get_matrix_name( self, data_folder, basename):
+        ext = "_"
+        for i,e in enumerate( ["TT","EE","TE","ET"]):
+            if self._is_mode[i]: ext += e
+        return os.path.join(data_folder, basename + ext + ".fits")
+
+    def _get_matrix_size( self):
+        nell = 0
+        
+        #TT,EE,TEET
+        for m in range(3):
+            if self._is_mode[m]:
+                nells = self.lmaxs[m] - self.lmins[m] + 1
+                nell += np.sum([nells[self.xspec2xfreq.index(k)] for k in range(self.nxfreq)])
+        
+        return nell
+
+    def _select_spectra(self, cl, mode=0):
+        """
+        Cut spectra given Multipole Ranges and flatten
+        Return: list
+        """
+        acl = np.asarray(cl)
+        xl = []
+        for xf in range(self.nxfreq):
+            lmin = self.lmins[mode][self.xspec2xfreq.index(xf)]
+            lmax = self.lmaxs[mode][self.xspec2xfreq.index(xf)]
+            xl += list(acl[xf, lmin : lmax + 1])
+        return xl
+
+    def _xspectra_to_xfreq(self, cl, weight, normed=True):
+        """
+        Average cross-spectra per cross-frequency
+        """
+        xcl = np.zeros((self.nxfreq, self.lmax + 1))
+        xw8 = np.zeros((self.nxfreq, self.lmax + 1))
+        for xs in range(self.nxspec):
+            xcl[self.xspec2xfreq[xs]] += weight[xs] * cl[xs]
+            xw8[self.xspec2xfreq[xs]] += weight[xs]
+
+        xw8[xw8 == 0] = np.inf
+        if normed:
+            return xcl / xw8
         else:
-            value = str(value)
-        d[name.strip()] = value
-#        setattr(self, d[name], value)
-    return(d)
+            return (xcl, xw8)
 
-def list_cross( nmap):
-    return( [(i,j) for i in range(0,nmap) for j in range(i+1,nmap)])
+    def _compute_residuals(self, pars, dlth, mode=0):
+
+        # nuisances
+        cal = []
+        for m1 in range(self.nmap):
+            for m2 in range(m1 + 1, self.nmap):
+                cal.append(pars["Aplanck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
+
+        # Data
+        dldata = self.dldata[mode]
+
+        # Model
+        dlmodel = [dlth[mode]] * self.nxspec
+        for fg in self.fgs[mode]:
+            dlmodel += fg.compute_dl(pars)
+
+        # Compute Rl = Dl - Dlth
+        Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self.nxspec)])
+
+        return Rspec
+
+    def compute_chi2( self, cl, **params_values):
+        """
+        Compute likelihood from model out of Boltzmann code
+        Units: Dl in muK^2
+
+        Parameters
+        ----------
+        pars: dict
+              parameter values
+        cl: array or arr2d
+              CMB power spectrum (Cl in muK^2)
+
+        Returns
+        -------
+        lnL: float
+            Log likelihood for the given parameters -2ln(L)
+        """
+        
+        # cl_boltz from Boltzmann (Cl in muK^2)
+        lth = np.arange(self.lmax + 1)
+        clth = np.asarray(cl)
+        dlth = np.asarray(clth[:,lth]*lth*(lth+1)/2./np.pi)
+        
+        # Create Data Vector
+        Xl = []
+        if self.TT:
+            # compute residuals Rl = Dl - Dlth
+            Rspec = self._compute_residuals(params_values, dlth, mode=0)
+            # average to cross-spectra
+            Rl = self._xspectra_to_xfreq(Rspec, self.dlweight[0])
+            # select multipole range
+            Xl += self._select_spectra(Rl, mode=0)
+        
+        if self.EE:
+            # compute residuals Rl = Dl - Dlth
+            Rspec = self._compute_residuals(params_values, dlth, mode=1)
+            # average to cross-spectra
+            Rl = self._xspectra_to_xfreq(Rspec, self.dlweight[1])
+            # select multipole range
+            Xl += self._select_spectra(Rl, mode=1)
+        
+        if self.TE or self.ET:
+            Rl = 0
+            Wl = 0
+            # compute residuals Rl = Dl - Dlth
+            if self.TE:
+                Rspec = self._compute_residuals(params_values, dlth, mode=2)
+                RlTE, WlTE = self._xspectra_to_xfreq(Rspec, self.dlweight[2], normed=False)
+                Rl = Rl + RlTE
+                Wl = Wl + WlTE
+            if self.ET:
+                Rspec = self._compute_residuals(params_values, dlth, mode=3)
+                RlET, WlET = self._xspectra_to_xfreq(Rspec, self.dlweight[3], normed=False)
+                Rl = Rl + RlET
+                Wl = Wl + WlET
+            # select multipole range
+            Xl += self._select_spectra(Rl / Wl, mode=2)
+        
+        Xl = np.array(Xl)
+        chi2 = Xl.dot(self.invkll).dot(Xl)
+        
+        return chi2
+
+# ------------------------------------------------------------------------------------------------
 
 
+
+
+
+# ------------------------------------------------------------------------------------------------
+# Esternal tools
+# ------------------------------------------------------------------------------------------------
 
 def create_bin_file( filename, lbinTT, lbinEE, lbinBB, lbinTE, lbinET):
     """
@@ -184,7 +494,7 @@ class Bins(object):
         
         return p, q
 
-    def bin_spectra(self, spectra, Dl=False):
+    def bin_spectra(self, spectra):
         """
         Average spectra in bins specified by lmin, lmax and delta_ell,
         weighted by `l(l+1)/2pi`.
@@ -192,12 +502,8 @@ class Bins(object):
         """
         spectra = np.asarray(spectra)
         minlmax = min([spectra.shape[-1] - 1,self.lmax])
-#        if Dl:
-#            fact_binned = 1.
-#        else:
-#            fact_binned = 2 * np.pi / (self.lbin * (self.lbin + 1))
         
         _p, _q = self._bin_operators()
-        return np.dot(spectra[..., :minlmax+1], _p.T[:minlmax+1,...]) #* fact_binned
+        return np.dot(spectra[..., :minlmax+1], _p.T[:minlmax+1,...])
 
 
