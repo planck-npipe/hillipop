@@ -28,7 +28,7 @@ releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Plan
 2016](https://arxiv.org/abs/1507.02704)], and is described in detail in [Couchot et
 al. (2017)](https://arxiv.org/abs/1609.09730).
 
-Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, and ``hillipop.TTTEEE``.
+Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, ``hillipop.TTTE``, and ``hillipop.TTTEEE``.
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
