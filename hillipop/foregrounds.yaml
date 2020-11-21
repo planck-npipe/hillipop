@@ -1,0 +1,5 @@
+  dust: foregrounds/DUST_planck_npipe_model
+  SZ: foregrounds/SZ_planck_npipe_model.fits
+  kSZ: foregrounds/kSZ_planck_npipe_model.fits
+  CIB: foregrounds/CIB_planck_npipe_model_v3
+  SZxCIB: foregrounds/SZxCIB_planck_npipe_model

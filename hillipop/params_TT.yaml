@@ -1,0 +1,21 @@
+  Aradio:
+    value: 1.0
+    latex: A_\mathrm{radio}^\mathrm{PS}
+  Adusty:
+    value: 1.0
+    latex: A_\mathrm{dust}^\mathrm{PS}
+  AdustTT:
+    value: 1.0
+    latex: A_\mathrm{dust}^\mathrm{TT}
+  Asz:
+    value: 1.0
+    latex: A_\mathrm{SZ}
+  Acib:
+    value: 1.0
+    latex: A_\mathrm{CIB}
+  Aksz:
+    value: 1.0
+    latex: A_\mathrm{kSZ}
+  Aszxcib:
+    value: 1.0
+    latex: A_\mathrm{SZxCIB}
