@@ -1,9 +1,15 @@
-  Aplanck:
+  A_planck:
     prior:
       dist: norm
       loc: 1
       scale: 0.0025
-    latex: A_\mathrm{planck}
+    ref:
+      dist: norm
+      loc: 1
+      scale: 0.002
+    proposal: 0.0005
+    latex: y_\mathrm{cal}
+    renames: calPlanck
   c0:
     value: 0.0
     latex: c_0

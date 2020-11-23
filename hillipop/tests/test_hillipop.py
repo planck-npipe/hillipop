@@ -17,7 +17,7 @@ cosmo_params = {
 }
 
 calib_params = {
-    "Aplanck": 1.0,
+    "A_planck": 1.0,
     "c0": 0.0,
     "c1": 0.0,
     "c2": 0.0,
@@ -85,7 +85,7 @@ class HillipopTest(unittest.TestCase):
                 "debug": True,
                 "likelihood": {"hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": cosmo_params,
+                "params": {**cosmo_params, **calib_params, **nuisance_params[mode]},
                 "modules": packages_path,
             }
             from cobaya.model import get_model
