@@ -280,7 +280,7 @@ class _HillipopLikelihood(_InstallableLikelihood):
         cal = []
         for m1 in range(self.nmap):
             for m2 in range(m1 + 1, self.nmap):
-                cal.append(pars["A_planck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
+                cal.append(pars["Aplanck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
 
         # Data
         dldata = self.dldata[mode]

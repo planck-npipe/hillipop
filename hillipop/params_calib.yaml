@@ -1,5 +1,8 @@
-  A_planck:
-    value: 1.0
+  Aplanck:
+    prior:
+      dist: norm
+      loc: 1
+      scale: 0.0025
     latex: A_\mathrm{planck}
   c0:
     value: 0.0
