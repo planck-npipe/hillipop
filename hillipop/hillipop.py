@@ -54,32 +54,32 @@ class _HillipopLikelihood(_InstallableLikelihood):
             )
 
         self.frequencies = [100, 100, 143, 143, 217, 217]
-        self.nmap = len(self.frequencies)
-        self.nfreq = len(np.unique(self.frequencies))
-        self.nxfreq = self.nfreq * (self.nfreq + 1) // 2
-        self.nxspec = self.nmap * (self.nmap - 1) // 2
-        self.xspec2xfreq = self._xspec2xfreq()
+        self._nmap = len(self.frequencies)
+        self._nfreq = len(np.unique(self.frequencies))
+        self._nxfreq = self._nfreq * (self._nfreq + 1) // 2
+        self._nxspec = self._nmap * (self._nmap - 1) // 2
+        self._xspec2xfreq = self._xspec2xfreq()
         self.log.debug("frequencies = {}".format(self.frequencies))
 
         # Get likelihood name and add the associated mode
         likelihood_name = self.__class__.__name__
-        self.is_mode = {mode: mode in likelihood_name for mode in ["TT", "TE", "EE"]}
-        self.is_mode["ET"] = self.is_mode["TE"]
-        self.log.debug("mode = {}".format(self.is_mode))
+        self._is_mode = {mode: mode in likelihood_name for mode in ["TT", "TE", "EE"]}
+        self._is_mode["ET"] = self._is_mode["TE"]
+        self.log.debug("mode = {}".format(self._is_mode))
 
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
-        self.lmins, self.lmaxs = self._set_multipole_ranges(filename)
-        self.lmax = np.max([max(l) for l in self.lmaxs])
+        self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
+        self.lmax = np.max([max(l) for l in self._lmaxs])
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
-        self.dldata = self._read_dl_xspectra(basename, field=1)
+        self._dldata = self._read_dl_xspectra(basename, field=1)
 
         # Weights
         dlsig = self._read_dl_xspectra(basename, field=2)
         dlsig[dlsig == 0] = np.inf
-        self.dlweight = 1.0 / dlsig ** 2
+        self._dlweight = 1.0 / dlsig ** 2
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
@@ -91,13 +91,13 @@ class _HillipopLikelihood(_InstallableLikelihood):
                 "The covariance matrix mode differs from the likelihood mode. Check the given path [%s]",
                 self.covariance_matrix_file,
             )
-        self.invkll = self._read_invcovmatrix(filename)
+        self._invkll = self._read_invcovmatrix(filename)
 
         # Foregrounds
         self.fgs = []  # list of foregrounds per mode [TT,EE,TE,ET]
         # Init foregrounds TT
         fgsTT = []
-        if self.is_mode["TT"]:
+        if self._is_mode["TT"]:
             fgsTT.append(fg.ps_radio(self.lmax, self.frequencies))
             fgsTT.append(fg.ps_dusty(self.lmax, self.frequencies))
 
@@ -126,19 +126,19 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
         # Init foregrounds EE
         fgsEE = []
-        if self.is_mode["EE"]:
+        if self._is_mode["EE"]:
             if dust_filename:
                 fgsEE.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="EE"))
         self.fgs.append(fgsEE)
 
         # Init foregrounds TE
         fgsTE = []
-        if self.is_mode["TE"]:
+        if self._is_mode["TE"]:
             if dust_filename:
                 fgsTE.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="TE"))
         self.fgs.append(fgsTE)
         fgsET = []
-        if self.is_mode["ET"]:
+        if self._is_mode["ET"]:
             if dust_filename:
                 fgsET.append(fg.dust_model(self.lmax, self.frequencies, dust_filename, mode="ET"))
         self.fgs.append(fgsET)
@@ -147,14 +147,14 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
     def _xspec2xfreq(self):
         list_fqs = []
-        for f1 in range(self.nfreq):
-            for f2 in range(f1, self.nfreq):
+        for f1 in range(self._nfreq):
+            for f2 in range(f1, self._nfreq):
                 list_fqs.append((f1, f2))
 
         freqs = list(np.unique(self.frequencies))
         spec2freq = []
-        for m1 in range(self.nmap):
-            for m2 in range(m1 + 1, self.nmap):
+        for m1 in range(self._nmap):
+            for m2 in range(m1 + 1, self._nmap):
                 f1 = freqs.index(self.frequencies[m1])
                 f2 = freqs.index(self.frequencies[m2])
                 spec2freq.append(list_fqs.index((f1, f2)))
@@ -177,7 +177,7 @@ class _HillipopLikelihood(_InstallableLikelihood):
             data = fits.getdata(filename, hdu + 1)
             lmins.append(np.array(data.field(0), int))
             lmaxs.append(np.array(data.field(1), int))
-            if self.is_mode[tags[hdu]]:
+            if self._is_mode[tags[hdu]]:
                 self.log.debug("%s" % (tags[hdu]))
                 self.log.debug("lmin: {}".format(np.array(data.field(0), int)))
                 self.log.debug("lmax: {}".format(np.array(data.field(1), int)))
@@ -192,8 +192,8 @@ class _HillipopLikelihood(_InstallableLikelihood):
         self.log.debug("Reading cross-spectra {}".format("errors" if field == 2 else ""))
 
         dldata = []
-        for m1 in range(self.nmap):
-            for m2 in range(m1 + 1, self.nmap):
+        for m1 in range(self._nmap):
+            for m2 in range(m1 + 1, self._nmap):
                 tmpcl = []
                 for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
                     filename = "{}_{}_{}.fits".format(basename, m1, m2)
@@ -239,9 +239,9 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
         # TT,EE,TEET
         for im, m in enumerate(["TT", "EE", "TE"]):
-            if self.is_mode[m]:
-                nells = self.lmaxs[im] - self.lmins[im] + 1
-                nell += np.sum([nells[self.xspec2xfreq.index(k)] for k in range(self.nxfreq)])
+            if self._is_mode[m]:
+                nells = self._lmaxs[im] - self._lmins[im] + 1
+                nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
 
         return nell
 
@@ -252,9 +252,9 @@ class _HillipopLikelihood(_InstallableLikelihood):
         """
         acl = np.asarray(cl)
         xl = []
-        for xf in range(self.nxfreq):
-            lmin = self.lmins[mode][self.xspec2xfreq.index(xf)]
-            lmax = self.lmaxs[mode][self.xspec2xfreq.index(xf)]
+        for xf in range(self._nxfreq):
+            lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
+            lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
             xl += list(acl[xf, lmin : lmax + 1])
         return xl
 
@@ -262,11 +262,11 @@ class _HillipopLikelihood(_InstallableLikelihood):
         """
         Average cross-spectra per cross-frequency
         """
-        xcl = np.zeros((self.nxfreq, self.lmax + 1))
-        xw8 = np.zeros((self.nxfreq, self.lmax + 1))
-        for xs in range(self.nxspec):
-            xcl[self.xspec2xfreq[xs]] += weight[xs] * cl[xs]
-            xw8[self.xspec2xfreq[xs]] += weight[xs]
+        xcl = np.zeros((self._nxfreq, self.lmax + 1))
+        xw8 = np.zeros((self._nxfreq, self.lmax + 1))
+        for xs in range(self._nxspec):
+            xcl[self._xspec2xfreq[xs]] += weight[xs] * cl[xs]
+            xw8[self._xspec2xfreq[xs]] += weight[xs]
 
         xw8[xw8 == 0] = np.inf
         if normed:
@@ -278,20 +278,20 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
         # nuisances
         cal = []
-        for m1 in range(self.nmap):
-            for m2 in range(m1 + 1, self.nmap):
+        for m1 in range(self._nmap):
+            for m2 in range(m1 + 1, self._nmap):
                 cal.append(pars["A_planck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
 
         # Data
-        dldata = self.dldata[mode]
+        dldata = self._dldata[mode]
 
         # Model
-        dlmodel = [dlth[mode]] * self.nxspec
+        dlmodel = [dlth[mode]] * self._nxspec
         for fg in self.fgs[mode]:
             dlmodel += fg.compute_dl(pars)
 
         # Compute Rl = Dl - Dlth
-        Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self.nxspec)])
+        Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self._nxspec)])
 
         return Rspec
 
@@ -319,41 +319,41 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
         # Create Data Vector
         Xl = []
-        if self.is_mode["TT"]:
+        if self._is_mode["TT"]:
             # compute residuals Rl = Dl - Dlth
             Rspec = self._compute_residuals(params_values, dlth, mode=0)
             # average to cross-spectra
-            Rl = self._xspectra_to_xfreq(Rspec, self.dlweight[0])
+            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight[0])
             # select multipole range
             Xl += self._select_spectra(Rl, mode=0)
 
-        if self.is_mode["EE"]:
+        if self._is_mode["EE"]:
             # compute residuals Rl = Dl - Dlth
             Rspec = self._compute_residuals(params_values, dlth, mode=1)
             # average to cross-spectra
-            Rl = self._xspectra_to_xfreq(Rspec, self.dlweight[1])
+            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight[1])
             # select multipole range
             Xl += self._select_spectra(Rl, mode=1)
 
-        if self.is_mode["TE"] or self.is_mode["ET"]:
+        if self._is_mode["TE"] or self._is_mode["ET"]:
             Rl = 0
             Wl = 0
             # compute residuals Rl = Dl - Dlth
-            if self.is_mode["TE"]:
+            if self._is_mode["TE"]:
                 Rspec = self._compute_residuals(params_values, dlth, mode=2)
-                RlTE, WlTE = self._xspectra_to_xfreq(Rspec, self.dlweight[2], normed=False)
+                RlTE, WlTE = self._xspectra_to_xfreq(Rspec, self._dlweight[2], normed=False)
                 Rl = Rl + RlTE
                 Wl = Wl + WlTE
-            if self.is_mode["ET"]:
+            if self._is_mode["ET"]:
                 Rspec = self._compute_residuals(params_values, dlth, mode=3)
-                RlET, WlET = self._xspectra_to_xfreq(Rspec, self.dlweight[3], normed=False)
+                RlET, WlET = self._xspectra_to_xfreq(Rspec, self._dlweight[3], normed=False)
                 Rl = Rl + RlET
                 Wl = Wl + WlET
             # select multipole range
             Xl += self._select_spectra(Rl / Wl, mode=2)
 
         Xl = np.array(Xl)
-        chi2 = Xl @ self.invkll @ Xl
+        chi2 = Xl @ self._invkll @ Xl
 
         self.log.debug("chi2/ndof = {}/{}".format(chi2, len(Xl)))
         return chi2
