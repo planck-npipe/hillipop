@@ -60,6 +60,9 @@ remove the ``-e`` option.
 Installing Hillipop likelihood data
 -----------------------------------
 
+The [`examples/test_hillipop.yaml`](examples/test_hillipop.yaml) file is a good starting point to
+know the different nuisance parameters used by `hillipop` likelihoods.
+
 You should use the `cobaya-install` binary to automatically download the data needed by the
 `Hillipop` likelihood
 
