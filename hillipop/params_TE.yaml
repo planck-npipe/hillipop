@@ -1,3 +1,7 @@
   AdustTP:
-    value: 1.0
-    latex: A_\mathrm{dust}^\mathrm{TT}
+    prior:
+      dist: norm
+      loc: 1.0
+      scale: 0.2
+    proposal: 0.1
+    latex: A_\mathrm{dust}^\mathrm{TP}

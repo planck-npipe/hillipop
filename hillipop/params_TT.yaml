@@ -1,21 +1,50 @@
   Aradio:
-    value: 1.0
+    prior:
+      dist: norm
+      loc: 1.6
+      scale: 0.2
+    proposal: 0.1
     latex: A_\mathrm{radio}^\mathrm{PS}
   Adusty:
-    value: 1.0
+    prior:
+      dist: norm
+      loc: 0.8
+      scale: 0.2
+    proposal: 0.1
     latex: A_\mathrm{dust}^\mathrm{PS}
   AdustTT:
-    value: 1.0
+    prior:
+      dist: norm
+      loc: 1.0
+      scale: 0.2
+    proposal: 0.1
     latex: A_\mathrm{dust}^\mathrm{TT}
   Asz:
-    value: 1.0
+    prior:
+      dist: norm
+      loc: 1.0
+      scale: 0.2
+    proposal: 0.1
     latex: A_\mathrm{SZ}
   Acib:
-    value: 1.0
+    prior:
+      dist: norm
+      loc: 1.0
+      scale: 0.2
+    proposal: 0.1
     latex: A_\mathrm{CIB}
   Aksz:
-    value: 1.0
+    prior:
+      min: 0
+      max: 10
+    ref: 0.6
+    proposal: 1
     latex: A_\mathrm{kSZ}
   Aszxcib:
-    value: 1.0
+    prior:
+      min: 0
+      max: 10
+    ref: 1.0
+    proposal: 1
     latex: A_\mathrm{SZxCIB}
+

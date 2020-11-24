@@ -60,8 +60,8 @@ params:
   sigma8:
     latex: \sigma_8
 
-  # Fixed values of nuisance
-  Aplanck:
+  # Nuisance Parameters
+  A_planck:
     prior:
       dist: norm
       loc: 1.0
@@ -107,6 +107,7 @@ params:
     proposal: 0.001
     latex: c_5
 
+  # Foregound parameters
   Aradio:
     prior:
       dist: norm
@@ -178,6 +179,6 @@ theory:
       lens_potential_accuracy: 1
 
 sampler:
-  mcmc:
+  evaluate:
 
-output: chains/mcmc
+output: eval
