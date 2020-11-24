@@ -18,12 +18,12 @@ cosmo_params = {
 
 calib_params = {
     "A_planck": 1.0,
-    "c0": 0.0,
-    "c1": 0.0,
-    "c2": 0.0,
-    "c3": 0.0,
-    "c4": 0.0,
-    "c5": 0.0,
+    "cal100A": 0.0,
+    "cal100B": 0.0,
+    "cal143A": 0.0,
+    "cal143B": 0.0,
+    "cal217A": 0.0,
+    "cal217B": 0.0,
 }
 
 nuisance_params = {

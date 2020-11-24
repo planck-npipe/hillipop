@@ -54,6 +54,7 @@ class _HillipopLikelihood(_InstallableLikelihood):
             )
 
         self.frequencies = [100, 100, 143, 143, 217, 217]
+        self._mapnames = ["100A", "100B", "143A", "143B", "217A", "217B"]
         self._nmap = len(self.frequencies)
         self._nfreq = len(np.unique(self.frequencies))
         self._nxfreq = self._nfreq * (self._nfreq + 1) // 2
@@ -279,8 +280,10 @@ class _HillipopLikelihood(_InstallableLikelihood):
         # nuisances
         cal = []
         for m1 in range(self._nmap):
+            cal1 = "cal%s" % self._mapnames[m1]
             for m2 in range(m1 + 1, self._nmap):
-                cal.append(pars["A_planck"] ** 2 * (1.0 + pars["c%d" % m1] + pars["c%d" % m2]))
+                cal2 = "cal%s" % self._mapnames[m2]
+                cal.append(pars["A_planck"] ** 2 * (1.0 + pars[cal1] + pars[cal2]))
 
         # Data
         dldata = self._dldata[mode]

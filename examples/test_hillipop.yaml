@@ -68,44 +68,44 @@ params:
       scale: 0.0025
     proposal: 0.001
     latex: A_\mathrm{planck}
-  c0:
+  cal100A:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
-    latex: c_0
-  c1:
+    latex: cal_\mathrm{100A}
+  cal100B:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
-    latex: c_1
-  c2:
+    latex: cal_\mathrm{100B}
+  cal143A:
     value: 0.0
-    latex: c_2
-  c3:
+    latex: cal_\mathrm{143A}
+  cal143B:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
-    latex: c_3
-  c4:
+    latex: cal_\mathrm{143B}
+  cal217A:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
-    latex: c_4
-  c5:
+    latex: cal_\mathrm{217A}
+  cal217B:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
-    latex: c_5
+    latex: cal_\mathrm{217B}
 
   # Foregound parameters
   Aradio:

@@ -10,38 +10,38 @@
     proposal: 0.0005
     latex: y_\mathrm{cal}
     renames: calPlanck
-  c0:
+  cal100A:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
     latex: cal_\mathrm{100A}
-  c1:
+  cal100B:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
     latex: cal_\mathrm{100B}
-  c2:
+  cal143A:
     value: 0.0
     latex: cal_\mathrm{143A}
-  c3:
+  cal143B:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
     latex: cal_\mathrm{143B}
-  c4:
+  cal217A:
     prior:
       dist: norm
       loc: 0.0
       scale: 0.002
     proposal: 0.001
     latex: cal_\mathrm{217A}
-  c5:
+  cal217B:
     prior:
       dist: norm
       loc: 0.0
