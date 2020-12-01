@@ -32,4 +32,4 @@ jobs:
     - name: Unit tests
       run: |
         pip install camb
-        python -m unittest hillipop.tests.test_hillipop
+        python -m unittest planck_2020_hillipop.tests.test_hillipop
