@@ -14,8 +14,8 @@ from cobaya.conventions import _packages_path
 from cobaya.likelihoods._base_classes import _InstallableLikelihood
 from cobaya.log import LoggedError
 
-from hillipop import foregrounds_v3 as fg
-from hillipop import tools
+from . import foregrounds_v3 as fg
+from . import tools
 
 # ------------------------------------------------------------------------------------------------
 # Likelihood

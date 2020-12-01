@@ -1,13 +1,18 @@
 HiLLiPoP: High-L Likelihood Polarized for Planck
 ================================================
 
+![GitHub Workflow
+Status](https://img.shields.io/github/workflow/status/planck-npipe/hillipop/Unit%20test)
+![https://pypi.python.org/pypi/planck-2020-hillipop](https://img.shields.io/pypi/v/planck-2020-hillipop)
+
 ``Hillipop`` is a multifrequency CMB likelihood for Planck data. The likelihood is a spectrum-based
 Gaussian approximation for cross-correlation spectra from Planck 100, 143 and 217GHz split-frequency
 maps, with semi-analytic estimates of the Cl covariance matrix based on the data. The cross-spectra
 are debiased from the effects of the mask and the beam leakage using
 [``Xpol``](https://gitlab.in2p3.fr/tristram/Xpol) (a generalization to polarization of the algorithm
 presented in [Tristram et al. 2005](https://arxiv.org/abs/astro-ph/0405575)) before being compared
-to the model, which includes CMB and foreground residuals. They cover the multipoles from &ell;=30 to &ell;=2500.
+to the model, which includes CMB and foreground residuals. They cover the multipoles from &ell;=30
+to &ell;=2500.
 
 The model consists of a linear combination of the CMB power spectrum and several foregrounds
 residuals. These are:
@@ -28,20 +33,26 @@ releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Plan
 2016](https://arxiv.org/abs/1507.02704)], and is described in detail in [Couchot et
 al. (2017)](https://arxiv.org/abs/1609.09730).
 
-Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, ``hillipop.TTTE``, and ``hillipop.TTTEEE``.
+Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, ``hillipop.TTTE``, and
+``hillipop.TTTEEE``.
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
 Likelihood versions
 -------------------
 
-* Planck 2018 (PR3)
+<!-- * Planck 2018 (PR3) -->
 * Planck 2020 (PR4)
 
 Install
 -------
+The easiest way to install the `Hillipop` likelihood is *via* `pip`
 
-You first need to clone this repository to some location
+```shell
+$ pip install planck-2020-hillipop [--user]
+```
+
+If you plan to dig into the code, it is better to clone this repository to some location
 
 ```shell
 $ git clone https://gitlab.in2p3.fr/tristram/hillipop.git /where/to/clone

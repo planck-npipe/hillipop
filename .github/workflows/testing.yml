@@ -1,4 +1,4 @@
-name: Testing
+name: Unit test
 
 on: [push]
 
@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.8] #[3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,4 +32,4 @@ jobs:
     - name: Unit tests
       run: |
         pip install camb
-        python -m unittest hillipop.tests.test_hillipop
+        python -m unittest planck_2020_hillipop.tests.test_hillipop

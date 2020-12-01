@@ -57,14 +57,14 @@ class HillipopTest(unittest.TestCase):
 
         for mode in chi2s.keys():
             install(
-                {"likelihood": {"hillipop.{}".format(mode): None}},
+                {"likelihood": {"planck_2020_hillipop.{}".format(mode): None}},
                 path=packages_path,
                 skip_global=True,
             )
 
     def test_hillipop(self):
         import camb
-        import hillipop
+        import planck_2020_hillipop
 
         camb_cosmo = cosmo_params.copy()
         camb_cosmo.update({"lmax": 2500, "lens_potential_accuracy": 1})
@@ -74,7 +74,7 @@ class HillipopTest(unittest.TestCase):
         cl_dict = {k: powers["total"][:, v] for k, v in {"tt": 0, "ee": 1, "te": 3}.items()}
 
         for mode, chi2 in chi2s.items():
-            _hlp = getattr(hillipop, mode)
+            _hlp = getattr(planck_2020_hillipop, mode)
             my_lik = _hlp({"packages_path": packages_path})
             loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode]})
             self.assertAlmostEqual(-2 * loglike, chi2, 0)
@@ -83,7 +83,7 @@ class HillipopTest(unittest.TestCase):
         for mode, chi2 in chi2s.items():
             info = {
                 "debug": True,
-                "likelihood": {"hillipop.{}".format(mode): None},
+                "likelihood": {"planck_2020_hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
                 "params": {**cosmo_params, **calib_params, **nuisance_params[mode]},
                 "modules": packages_path,
@@ -91,5 +91,4 @@ class HillipopTest(unittest.TestCase):
             from cobaya.model import get_model
 
             model = get_model(info)
-            my_hillipop = model.likelihood["hillipop.{}".format(mode)]
             self.assertAlmostEqual(-2 * model.loglikes({})[0][0], chi2, 0)

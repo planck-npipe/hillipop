@@ -1,0 +1,2 @@
+include versioneer.py
+include planck_2020_hillipop/_version.py
