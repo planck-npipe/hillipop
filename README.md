@@ -71,14 +71,14 @@ remove the ``-e`` option.
 Installing Hillipop likelihood data
 -----------------------------------
 
-The [`examples/test_hillipop.yaml`](examples/test_hillipop.yaml) file is a good starting point to
+The [`examples/hillipop_example.yaml`](examples/hillipop_example.yaml) file is a good starting point to
 know the different nuisance parameters used by `hillipop` likelihoods.
 
 You should use the `cobaya-install` binary to automatically download the data needed by the
 `Hillipop` likelihood
 
 ```shell
-$ cobaya-install /where/to/clone/examples/test_hillipop.yaml -p /where/to/put/packages
+$ cobaya-install /where/to/clone/examples/hillipop_example.yaml -p /where/to/put/packages
 ```
 
 Data and code such as [CAMB](https://github.com/cmbant/CAMB) will be downloaded and installed within
