@@ -6,6 +6,7 @@ import glob
 import logging
 import os
 import re
+from itertools import combinations
 from typing import Optional
 
 import astropy.io.fits as fits
@@ -193,22 +194,21 @@ class _HillipopLikelihood(_InstallableLikelihood):
         self.log.debug("Reading cross-spectra {}".format("errors" if field == 2 else ""))
 
         dldata = []
-        for m1 in range(self._nmap):
-            for m2 in range(m1 + 1, self._nmap):
-                tmpcl = []
-                for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
-                    filename = "{}_{}_{}.fits".format(basename, m1, m2)
-                    if mode == "ET":
-                        filename = "{}_{}_{}.fits".format(basename, m2, m1)
-                    if not os.path.exists(filename):
-                        raise ValueError("File missing {}".format(filename))
-                    data = fits.getdata(filename, hdu)
-                    ell = np.array(data.field(0), int)
-                    datacl = np.zeros(np.max(ell) + 1)
-                    datacl[ell] = data.field(field) * 1e12
-                    tmpcl.append(datacl[: self.lmax + 1])
+        for m1, m2 in combinations(range(self._nmap), 2):
+            tmpcl = []
+            for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
+                filename = "{}_{}_{}.fits".format(basename, m1, m2)
+                if mode == "ET":
+                    filename = "{}_{}_{}.fits".format(basename, m2, m1)
+                if not os.path.exists(filename):
+                    raise ValueError("File missing {}".format(filename))
+                data = fits.getdata(filename, hdu)
+                ell = np.array(data.field(0), int)
+                datacl = np.zeros(np.max(ell) + 1)
+                datacl[ell] = data.field(field) * 1e12
+                tmpcl.append(datacl[: self.lmax + 1])
 
-                dldata.append(tmpcl)
+            dldata.append(tmpcl)
 
         return np.transpose(np.array(dldata), (1, 0, 2))
 
@@ -279,11 +279,10 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
         # nuisances
         cal = []
-        for m1 in range(self._nmap):
+        for m1, m2 in combinations(range(self._nmap), 2):
             cal1 = "cal%s" % self._mapnames[m1]
-            for m2 in range(m1 + 1, self._nmap):
-                cal2 = "cal%s" % self._mapnames[m2]
-                cal.append(pars["A_planck"] ** 2 * (1.0 + pars[cal1] + pars[cal2]))
+            cal2 = "cal%s" % self._mapnames[m2]
+            cal.append(pars["A_planck"] ** 2 * (1.0 + pars[cal1] + pars[cal2]))
 
         # Data
         dldata = self._dldata[mode]
