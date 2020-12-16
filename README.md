@@ -1,9 +1,10 @@
 HiLLiPoP: High-L Likelihood Polarized for Planck
 ================================================
 
-![GitHub Workflow
-Status](https://img.shields.io/github/workflow/status/planck-npipe/hillipop/Unit%20test)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/planck-npipe/hillipop/Unit%20test)
 ![https://pypi.python.org/pypi/planck-2020-hillipop](https://img.shields.io/pypi/v/planck-2020-hillipop)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 
 ``Hillipop`` is a multifrequency CMB likelihood for Planck data. The likelihood is a spectrum-based
 Gaussian approximation for cross-correlation spectra from Planck 100, 143 and 217GHz split-frequency
