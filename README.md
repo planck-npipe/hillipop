@@ -56,7 +56,7 @@ $ pip install planck-2020-hillipop [--user]
 If you plan to dig into the code, it is better to clone this repository to some location
 
 ```shell
-$ git clone https://gitlab.in2p3.fr/tristram/hillipop.git /where/to/clone
+$ git clone https://github.com/planck-npipe/hillipop.git /where/to/clone
 ```
 
 Then you can install the `Hillipop` likelihood and its dependencies *via*
