@@ -77,7 +77,7 @@ class HillipopTest(unittest.TestCase):
             _hlp = getattr(planck_2020_hillipop, mode)
             my_lik = _hlp({"packages_path": packages_path})
             loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode]})
-            self.assertAlmostEqual(-2 * loglike, chi2, 0)
+            self.assertLess( abs(-2 * loglike - chi2), 1)
 
     def test_cobaya(self):
         for mode, chi2 in chi2s.items():
