@@ -91,4 +91,4 @@ class HillipopTest(unittest.TestCase):
             from cobaya.model import get_model
 
             model = get_model(info)
-            self.assertAlmostEqual(-2 * model.loglikes({})[0][0], chi2, 0)
+            self.assertLess( abs(-2 * model.loglikes({})[0][0] - chi2), 1)
