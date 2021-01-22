@@ -48,7 +48,7 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["EE"],
 }
 
-chi2s = {"TT": 12573.1, "EE": 7898.6, "TE": 8963.5}  # "TTTE": 22272.7, "TTTEEE": 31153.3}
+chi2s = {"TT": 12573.6, "EE": 7898.7, "TE": 8963.5}  # "TTTE": 22272.7, "TTTEEE": 31153.3}
 
 
 class HillipopTest(unittest.TestCase):
