@@ -13,7 +13,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Matthieu Tristram",
-    url="https://github.com/planck-npipe/lollipop",
+    url="https://github.com/planck-npipe/hillipop",
     license="GNU license",
     classifiers=[
         "Intended Audience :: Developers",
