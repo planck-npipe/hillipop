@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------------------
-# Hillipop Tools
+# Hillipop External Tools
 # ------------------------------------------------------------------------------------------------
 import os
 
@@ -8,13 +8,16 @@ import numpy as np
 import scipy.ndimage as nd
 from numpy.linalg import *
 
-from . import foregrounds_v3 as fg
-
 tagnames = ["TT", "EE", "TE", "ET"]
 
 
+
 # ------------------------------------------------------------------------------------------------
-# External tools
+# def create_bin_file(filename, lbinTT, lbinEE, lbinBB, lbinTE, lbinET)
+# def SG(l, cl, nsm=5, lcut=0)
+# def convert_to_stdev(sigma)
+# def ctr_level(histo2d, lvl)
+# class Bins(object)
 # ------------------------------------------------------------------------------------------------
 
 
@@ -97,6 +100,8 @@ def ctr_level(histo2d, lvl):
 
 
 # ------------------------------------------------------------------------------------------------
+
+
 
 
 # ------------------------------------------------------------------------------------------------

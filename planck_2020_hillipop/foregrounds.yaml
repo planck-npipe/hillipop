@@ -1,5 +1,12 @@
-  dust: foregrounds/DUST_planck_npipe_model
-  SZ: foregrounds/SZ_planck_npipe_model.fits
-  kSZ: foregrounds/kSZ_planck_npipe_model.fits
-  CIB: foregrounds/CIB_planck_npipe_model_v3
-  SZxCIB: foregrounds/SZxCIB_planck_npipe_model
+  TT:
+    dust: foregrounds/DUST_planck_npipe_model
+    tsz: foregrounds/SZ_planck_npipe_model.fits
+    ksz: foregrounds/kSZ_planck_npipe_model.fits
+    cib: foregrounds/CIB_planck_npipe_model_v3
+    szxcib: foregrounds/SZxCIB_planck_npipe_model
+    ps_radio: null
+    ps_dusty: null
+  EE:
+    dust: foregrounds/DUST_planck_npipe_model
+  TE:
+    dust: foregrounds/DUST_planck_npipe_model
