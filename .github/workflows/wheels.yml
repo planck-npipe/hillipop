@@ -3,29 +3,8 @@ name: Build wheels and upload to PyPI
 on: [push, pull_request]
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
 
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Build wheels
-        uses: joerick/cibuildwheel@v1.9.0
-        env:
-          CIBW_BEFORE_BUILD: "python -m pip install numpy"
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_BUILD: "cp3?-*x86_64"
-          CIBW_SKIP: "cp3{5,6}-*"
-
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
-
-  build_sdist:
+  build_dist:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
@@ -36,17 +15,17 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Build sdist
+      - name: Build sdist and wheel
         run: |
-          python setup.py sdist
+          python setup.py sdist bdist_wheel
 
       - uses: actions/upload-artifact@v2
         with:
-          path: dist/*.tar.gz
+          path: dist/*
           retention-days: 1
 
   upload_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [build_dist]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
