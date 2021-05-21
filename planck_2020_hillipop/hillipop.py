@@ -34,7 +34,7 @@ fg_list = {
 # Likelihood
 # ------------------------------------------------------------------------------------------------
 
-data_url = "https://portal.nersc.gov/project/cmb/planck2020/likelihoods"
+data_url = "https://portal.nersc.gov/cfs/cmb/planck2020/likelihoods"
 
 
 class _HillipopLikelihood(_InstallableLikelihood):
