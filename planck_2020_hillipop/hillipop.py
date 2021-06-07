@@ -11,8 +11,7 @@ from typing import Optional
 
 import astropy.io.fits as fits
 import numpy as np
-from cobaya.conventions import _packages_path
-from cobaya.likelihoods._base_classes import _InstallableLikelihood
+from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 
 from . import foregrounds as fg
@@ -37,7 +36,7 @@ fg_list = {
 data_url = "https://portal.nersc.gov/cfs/cmb/planck2020/likelihoods"
 
 
-class _HillipopLikelihood(_InstallableLikelihood):
+class _HillipopLikelihood(InstallableLikelihood):
 
     multipoles_range_file: Optional[str]
     xspectra_basename: Optional[str]
@@ -46,11 +45,11 @@ class _HillipopLikelihood(_InstallableLikelihood):
 
     def initialize(self):
         # Set path to data
-        if (not getattr(self, "path", None)) and (not getattr(self, _packages_path, None)):
+        if (not getattr(self, "path", None)) and (not getattr(self, packages_path, None)):
             raise LoggedError(
                 self.log,
                 "No path given to Hillipop data. Set the likelihood property 'path' or the common property '%s'.",
-                _packages_path,
+                packages_path,
             )
 
         # If no path specified, use the modules path
