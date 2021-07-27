@@ -119,52 +119,38 @@ class ps_dusty(fgmodel):
 class dust_model(fgmodel):
     def __init__(self, lmax, freqs, filename, mode="TT", auto=False):
         super().__init__(lmax, freqs, auto)
-        _hnu_T = {100: 0.01957, 143: 0.03982, 217: 0.13185}
-        _hnu_P = {100: 0.01703, 143: 0.03605, 217: 0.12498}
         self.name = "Dust"
         self.mode = mode
+        self.freqs = freqs
 
-        if self.mode == "TT":
-            icol = 1
-            hnuA = hnuB = _hnu_T
-        if self.mode == "EE":
-            icol = 2
-            hnuA = hnuB = _hnu_P
-        if self.mode == "TE":
-            icol = 4
-            hnuA = _hnu_T
-            hnuB = _hnu_P
-        if self.mode == "ET":
-            icol = 5
-            hnuA = _hnu_P
-            hnuB = _hnu_T
-
+        icol = ["TT","EE","BB","TE","ET"].index(mode)
+        
         nfreq = len(freqs)
         self.dl_dust = []
         for f1, f2 in self._cross_frequencies:
             dust_in = fits.getdata("%s_%dx%d.fits" % (filename, freqs[f1], freqs[f2]))
             ell = np.array(dust_in.field(0), int)
             tmpl = np.zeros(max(ell) + 1)
-            tmpl[ell] = (
-                ell
-                * (ell + 1)
-                / 2.0
-                / np.pi
-                * hnuA[freqs[f1]]
-                * hnuB[freqs[f2]]
-                * dust_in.field(icol)
-            )
+            tmpl[ell] = ell * (ell + 1) / 2.0 / np.pi * dust_in.field(icol+1)
             self.dl_dust.append(tmpl[: lmax + 1])
         self.dl_dust = np.array(self.dl_dust)
 
     def compute_dl(self, pars):
         if self.mode == "TT":
-            Ad = pars["AdustTT"]
+            A = B = {100:pars["Ad100T"], 143:pars["Ad143T"],217:pars["Ad217T"]}
         if self.mode == "EE":
-            Ad = pars["AdustPP"]
-        if self.mode == "TE" or self.mode == "ET":
-            Ad = pars["AdustTP"]
-        return Ad * self.dl_dust
+            A = B = {100:pars["Ad100P"], 143:pars["Ad143P"],217:pars["Ad217P"]}
+#            A = B = {100: 0.01703, 143: 0.03605, 217: 0.12498}
+        if self.mode == "TE":
+            A = {100:pars["Ad100T"], 143:pars["Ad143T"],217:pars["Ad217T"]}
+            B = {100:pars["Ad100P"], 143:pars["Ad143P"],217:pars["Ad217P"]}
+        if self.mode == "ET":
+            A = {100:pars["Ad100P"], 143:pars["Ad143P"],217:pars["Ad217P"]}
+            B = {100:pars["Ad100T"], 143:pars["Ad143T"],217:pars["Ad217T"]}
+        Ad = []
+        for f1, f2 in self._cross_frequencies:
+            Ad.append(A[self.freqs[f1]]*B[self.freqs[f2]])
+        return np.array(Ad)[:, None] * self.dl_dust
 
 
 # tSZ (one spectrum for all freqs)
