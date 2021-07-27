@@ -30,14 +30,27 @@ nuisance_params = {
     "TT": {
         "Aradio": 1.0,
         "Adusty": 1.0,
-        "AdustTT": 1.0,
+        "Ad100T": 0.02,
+        "Ad143T": 0.04,
+        "Ad217T": 0.13,
         "Acib": 1.0,
         "Asz": 1.0,
         "Aksz": 1.0,
         "Aszxcib": 1.0,
-    },
-    "EE": {"AdustPP": 1.0},
-    "TE": {"AdustTP": 1.0},
+        },
+    "EE": {
+        "Ad100P": 0.02,
+        "Ad143P": 0.04,
+        "Ad217P": 0.13,
+        },
+    "TE": {
+        "Ad100T": 0.02,
+        "Ad143T": 0.04,
+        "Ad217T": 0.13,
+        "Ad100P": 0.02,
+        "Ad143P": 0.04,
+        "Ad217P": 0.13,
+        },
 }
 nuisance_params["TTTE"] = {
     **nuisance_params["TT"],
@@ -47,8 +60,13 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["TTTE"],
     **nuisance_params["EE"],
 }
+nuisance_equiv = {
+  "Ad100": 0.02,
+  "Ad143": 0.04,
+  "Ad217": 0.13,
+    }
 
-chi2s = {"TT": 12573.6, "EE": 7898.7, "TE": 8963.5}
+chi2s = {"TT": 12486.86, "EE": 7893.5, "TE": 8964.2}
 
 
 class HillipopTest(unittest.TestCase):
@@ -76,7 +94,7 @@ class HillipopTest(unittest.TestCase):
         for mode, chi2 in chi2s.items():
             _hlp = getattr(planck_2020_hillipop, mode)
             my_lik = _hlp({"packages_path": packages_path})
-            loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode]})
+            loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode], **nuisance_equiv})
             self.assertLess( abs(-2 * loglike - chi2), 1)
 
     def test_cobaya(self):
@@ -85,7 +103,7 @@ class HillipopTest(unittest.TestCase):
                 "debug": True,
                 "likelihood": {"planck_2020_hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params, **calib_params, **nuisance_params[mode]},
+                "params": {**cosmo_params, **calib_params, **nuisance_params[mode], **nuisance_equiv},
                 "modules": packages_path,
             }
             from cobaya.model import get_model
