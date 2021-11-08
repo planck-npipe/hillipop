@@ -44,7 +44,7 @@
     value: 0.
     latex: A_\mathrm{radio}^\mathrm{PS}
   Adusty:
-    prior: 0.
+    value: 0.
     latex: A_\mathrm{dust}^\mathrm{PS}
   Ad100:
     prior:
