@@ -37,6 +37,12 @@ nuisance_params = {
         "Asz": 1.0,
         "Aksz": 1.0,
         "Aszxcib": 1.0,
+        "Aps_100x100": 0.,
+        "Aps_100x143": 0.,
+        "Aps_100x217": 0.,
+        "Aps_143x143": 0.,
+        "Aps_143x217": 0.,
+        "Aps_217x217": 0.,
         },
     "EE": {
         "Ad100P": 0.02,
@@ -61,9 +67,9 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["EE"],
 }
 nuisance_equiv = {
-  "Ad100": 0.02,
-  "Ad143": 0.04,
-  "Ad217": 0.13,
+    "Ad100": 0.02,
+    "Ad143": 0.04,
+    "Ad217": 0.13,
     }
 
 chi2s = {"TT": 12486.86, "EE": 7893.5, "TE": 8964.2}

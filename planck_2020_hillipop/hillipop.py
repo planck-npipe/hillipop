@@ -19,6 +19,7 @@ from . import tools
 
 #list of available foreground models
 fg_list = {
+    "ps": fg.ps,
     "dust": fg.dust_model,
     "ksz": fg.ksz_model,
     "ps_radio": fg.ps_radio,
@@ -227,8 +228,9 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError("File missing {}".format(filename))
 
-        data = fits.getdata(filename).field(0)
-        nel = int(np.sqrt(len(data)))
+#        data = fits.getdata(filename).field(0)
+        data = fits.getdata(filename)
+        nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
 
         nell = self._get_matrix_size()

@@ -53,6 +53,25 @@ class fgmodel(HasLogger):
 
 
 
+# Point Sources
+class ps(fgmodel):
+    def __init__(self, lmax, freqs, mode="TT", auto=False):
+        super().__init__(lmax, freqs, auto)
+        self.name = "PS"
+        # Amplitudes of the point sources power spectrum per xfreq
+        ell = np.arange(lmax + 1)
+        self.ll2pi = ell * (ell + 1) / 2.0 / np.pi
+
+    def compute_dl(self, pars):
+        nfreq = len(self.freqs)
+        dl_ps = []
+        for f1, f2 in self._cross_frequencies:
+            freq1 = self.freqs[f1]
+            freq2 = self.freqs[f2]
+            dl_ps.append( pars["Aps_{}x{}".format(freq1,freq2)] * 1e-6 * self.ll2pi)
+
+        return np.array(dl_ps)
+
 
 
 # Radio Point Sources

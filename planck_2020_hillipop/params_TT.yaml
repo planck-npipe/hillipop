@@ -1,3 +1,21 @@
+  Aps_100x100:
+    value: 0.0
+    latex: A^\mathrm{PS}(100x100)
+  Aps_100x143:
+    value: 0.0
+    latex: A^\mathrm{PS}(100x143)
+  Aps_100x217:
+    value: 0.0
+    latex: A^\mathrm{PS}(100x217)
+  Aps_143x143:
+    value: 0.0
+    latex: A^\mathrm{PS}(143x143)
+  Aps_143x217:
+    value: 0.0
+    latex: A^\mathrm{PS}(143x217)
+  Aps_217x217:
+    value: 0.0
+    latex: A^\mathrm{PS}(217x217)
   Aradio:
     prior:
       dist: norm
