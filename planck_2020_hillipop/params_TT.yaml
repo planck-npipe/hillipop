@@ -1,34 +1,50 @@
   Aps_100x100:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 320
+      scale: 14
+    proposal: 10
     latex: A^\mathrm{PS}(100x100)
   Aps_100x143:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 130
+      scale: 8.3
+    proposal: 10
     latex: A^\mathrm{PS}(100x143)
   Aps_100x217:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 98.6
+      scale: 6.5
+    proposal: 10
     latex: A^\mathrm{PS}(100x217)
   Aps_143x143:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 46.
+      scale: 5.1
+    proposal: 10
     latex: A^\mathrm{PS}(143x143)
   Aps_143x217:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 30.6
+      scale: 3.05
+    proposal: 10
     latex: A^\mathrm{PS}(143x217)
   Aps_217x217:
-    value: 0.0
+    prior:
+      dist: norm
+      loc: 76.3
+      scale: 7.6
+    proposal: 10
     latex: A^\mathrm{PS}(217x217)
   Aradio:
-    prior:
-      dist: norm
-      loc: 1.6
-      scale: 0.2
-    proposal: 0.1
+    value: 0.
     latex: A_\mathrm{radio}^\mathrm{PS}
   Adusty:
-    prior:
-      dist: norm
-      loc: 0.8
-      scale: 0.2
-    proposal: 0.1
+    prior: 0.
     latex: A_\mathrm{dust}^\mathrm{PS}
   Ad100:
     prior:
