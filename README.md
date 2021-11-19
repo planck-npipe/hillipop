@@ -26,8 +26,7 @@ residuals. These are:
   [Shaw et al. (2012)](https://arxiv.org/abs/1109.0553) and [Battaglia et
   al. (2013)](https://arxiv.org/abs/1211.2832);
 - a tSZ-CIB correlation consistent with both models above; and
-- unresolved point sources as a Poisson-like power spectrum with two components (extragalactic radio
-  galaxies and infrared dusty galaxies).
+- unresolved point sources as a Poisson-like power spectrum.
 
 HiLLiPoP has been used as an alternative to the public Planck likelihood in the 2013 and 2015 Planck
 releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Planck Collaboration XI
