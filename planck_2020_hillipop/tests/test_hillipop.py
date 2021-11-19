@@ -28,16 +28,35 @@ calib_params = {
 
 nuisance_params = {
     "TT": {
-        "Aradio": 1.0,
-        "Adusty": 1.0,
-        "AdustTT": 1.0,
+        "Aradio": 0.0,
+        "Adusty": 0.0,
+        "Ad100T": 0.016,
+        "Ad143T": 0.035,
+        "Ad217T": 0.130,
         "Acib": 1.0,
         "Asz": 1.0,
         "Aksz": 1.0,
         "Aszxcib": 1.0,
-    },
-    "EE": {"AdustPP": 1.0},
-    "TE": {"AdustTP": 1.0},
+        "Aps_100x100": 283.,
+        "Aps_100x143": 128.,
+        "Aps_100x217": 90.,
+        "Aps_143x143": 49.5,
+        "Aps_143x217": 34.5,
+        "Aps_217x217": 72.,
+        },
+    "EE": {
+        "Ad100P": 0.016,
+        "Ad143P": 0.035,
+        "Ad217P": 0.130,
+        },
+    "TE": {
+        "Ad100T": 0.02,
+        "Ad143T": 0.04,
+        "Ad217T": 0.13,
+        "Ad100P": 0.016,
+        "Ad143P": 0.035,
+        "Ad217P": 0.130,
+        },
 }
 nuisance_params["TTTE"] = {
     **nuisance_params["TT"],
@@ -47,8 +66,13 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["TTTE"],
     **nuisance_params["EE"],
 }
+nuisance_equiv = {
+    "Ad100": 0.016,
+    "Ad143": 0.035,
+    "Ad217": 0.130,
+    }
 
-chi2s = {"TT": 12573.6, "EE": 7898.7, "TE": 8963.5}
+chi2s = {"TT": 11415.58, "EE": 9244.86, "TE": 9916.65}
 
 
 class HillipopTest(unittest.TestCase):
@@ -76,7 +100,7 @@ class HillipopTest(unittest.TestCase):
         for mode, chi2 in chi2s.items():
             _hlp = getattr(planck_2020_hillipop, mode)
             my_lik = _hlp({"packages_path": packages_path})
-            loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode]})
+            loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode], **nuisance_equiv})
             self.assertLess( abs(-2 * loglike - chi2), 1)
 
     def test_cobaya(self):
@@ -85,7 +109,7 @@ class HillipopTest(unittest.TestCase):
                 "debug": True,
                 "likelihood": {"planck_2020_hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params, **calib_params, **nuisance_params[mode]},
+                "params": {**cosmo_params, **calib_params, **nuisance_params[mode], **nuisance_equiv},
                 "modules": packages_path,
             }
             from cobaya.model import get_model

@@ -19,6 +19,7 @@ from . import tools
 
 #list of available foreground models
 fg_list = {
+    "ps": fg.ps,
     "dust": fg.dust_model,
     "ksz": fg.ksz_model,
     "ps_radio": fg.ps_radio,
@@ -227,8 +228,9 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError("File missing {}".format(filename))
 
-        data = fits.getdata(filename).field(0)
-        nel = int(np.sqrt(len(data)))
+#        data = fits.getdata(filename).field(0)
+        data = fits.getdata(filename)
+        nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
 
         nell = self._get_matrix_size()
@@ -428,7 +430,7 @@ class TTTEEE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTEEE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TTTEEE_v1.1.tar.gz".format(data_url)}
 
 
 class TTTE(_HillipopLikelihood):
@@ -438,7 +440,7 @@ class TTTE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TTTE_v1.1.tar.gz".format(data_url)}
 
 
 class TT(_HillipopLikelihood):
@@ -448,7 +450,7 @@ class TT(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TT.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TT_v1.1.tar.gz".format(data_url)}
 
 
 class EE(_HillipopLikelihood):
@@ -458,7 +460,7 @@ class EE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_EE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_EE_v1.1.tar.gz".format(data_url)}
 
 
 class TE(_HillipopLikelihood):
@@ -468,4 +470,4 @@ class TE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TE_v1.1.tar.gz".format(data_url)}
