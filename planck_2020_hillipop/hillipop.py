@@ -470,4 +470,4 @@ class TE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipopTE_v1.1.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TE_v1.1.tar.gz".format(data_url)}
