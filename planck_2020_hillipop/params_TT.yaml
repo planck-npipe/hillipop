@@ -1,43 +1,43 @@
   Aps_100x100:
     prior:
-      dist: norm
-      loc: 320
-      scale: 14
+      min: 200
+      max: 400
+    ref: 283
     proposal: 10
     latex: A^\mathrm{PS}(100x100)
   Aps_100x143:
     prior:
-      dist: norm
-      loc: 130
-      scale: 8.3
+      min: 100
+      max: 150
+    ref: 128
     proposal: 10
     latex: A^\mathrm{PS}(100x143)
   Aps_100x217:
     prior:
-      dist: norm
-      loc: 98.6
-      scale: 6.5
+      min: 50
+      max: 150
+    ref: 90
     proposal: 10
     latex: A^\mathrm{PS}(100x217)
   Aps_143x143:
     prior:
-      dist: norm
-      loc: 46.
-      scale: 5.1
+      min: 20
+      max: 70
+    ref: 49.5
     proposal: 10
     latex: A^\mathrm{PS}(143x143)
   Aps_143x217:
     prior:
-      dist: norm
-      loc: 30.6
-      scale: 3.05
+      min: 20
+      max: 70
+    ref: 35
     proposal: 10
     latex: A^\mathrm{PS}(143x217)
   Aps_217x217:
     prior:
-      dist: norm
-      loc: 76.3
-      scale: 7.6
+      min: 50
+      max: 100
+    ref: 70
     proposal: 10
     latex: A^\mathrm{PS}(217x217)
   Aradio:
@@ -48,23 +48,23 @@
     latex: A_\mathrm{dust}^\mathrm{PS}
   Ad100:
     prior:
-      dist: norm
-      loc: 0.02
-      scale: 0.01
+      min: 0.0
+      max: 0.1
+    ref: 0.02
     proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{100}
   Ad143:
     prior:
-      dist: norm
-      loc: 0.04
-      scale: 0.02
+      min: 0.0
+      max: 0.1
+    ref: 0.04
     proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{143}
   Ad217:
     prior:
-      dist: norm
-      loc: 0.14
-      scale: 0.05
+      min: 0.0
+      max: 0.2
+    ref: 0.13
     proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
   Asz:

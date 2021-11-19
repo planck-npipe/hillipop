@@ -1,25 +1,24 @@
   Ad100:
     prior:
-      dist: norm
-      loc: 0.02
-      scale: 0.2
-    proposal: 0.1
+      min: 0.0
+      max: 0.1
+    ref: 0.02
+    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{100}
   Ad143:
     prior:
-      dist: norm
-      loc: 0.04
-      scale: 0.2
-    proposal: 0.1
+      min: 0.0
+      max: 0.1
+    ref: 0.04
+    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{143}
   Ad217:
     prior:
-      dist: norm
-      loc: 0.14
-      scale: 0.2
-    proposal: 0.1
+      min: 0.0
+      max: 0.2
+    ref: 0.13
+    proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
-
 
   Ad100T:
     value: "lambda Ad100: Ad100"
