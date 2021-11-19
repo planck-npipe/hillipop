@@ -430,7 +430,7 @@ class TTTEEE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTEEE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TTTEEE_v1.1.tar.gz".format(data_url)}
 
 
 class TTTE(_HillipopLikelihood):
@@ -440,7 +440,7 @@ class TTTE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TTTE_v1.1.tar.gz".format(data_url)}
 
 
 class TT(_HillipopLikelihood):
@@ -450,7 +450,7 @@ class TT(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TT.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_TT_v1.1.tar.gz".format(data_url)}
 
 
 class EE(_HillipopLikelihood):
@@ -460,7 +460,7 @@ class EE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_EE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipop_EE_v1.1.tar.gz".format(data_url)}
 
 
 class TE(_HillipopLikelihood):
@@ -470,4 +470,4 @@ class TE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TE.tar.gz".format(data_url)}
+    install_options = {"download_url": "{}/planck_2020_hillipopTE_v1.1.tar.gz".format(data_url)}
