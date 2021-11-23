@@ -110,7 +110,7 @@ class HillipopTest(unittest.TestCase):
                 "likelihood": {"planck_2020_hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
                 "params": {**cosmo_params, **calib_params, **nuisance_params[mode], **nuisance_equiv},
-                "modules": packages_path,
+                "packages_path": packages_path,
             }
             from cobaya.model import get_model
 
