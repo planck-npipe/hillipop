@@ -1,6 +1,6 @@
 HiLLiPoP: High-L Likelihood Polarized for Planck
 ================================================
-[![Unit test](https://img.shields.io/github/workflow/status/planck-npipe/hillipop/Unit%20test)](https://github.com/planck-npipe/hillipop/actions/workflows/testing.yml)
+[![Unit test]( https://img.shields.io/github/actions/workflow/status/planck-npipe/hillipop/testing.yml?branch=master)](https://github.com/planck-npipe/hillipop/actions/workflows/testing.yml)
 [![pypi](https://img.shields.io/pypi/v/planck-2020-hillipop)](https://pypi.python.org/pypi/planck-2020-hillipop)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
