@@ -11,13 +11,14 @@ from typing import Optional
 
 import astropy.io.fits as fits
 import numpy as np
+from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
 
 from . import foregrounds as fg
 from . import tools
 
-#list of available foreground models
+# list of available foreground models
 fg_list = {
     "ps": fg.ps,
     "dust": fg.dust_model,
@@ -38,7 +39,6 @@ data_url = "https://portal.nersc.gov/cfs/cmb/planck2020/likelihoods"
 
 
 class _HillipopLikelihood(InstallableLikelihood):
-
     multipoles_range_file: Optional[str]
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
@@ -46,16 +46,16 @@ class _HillipopLikelihood(InstallableLikelihood):
 
     def initialize(self):
         # Set path to data
-        if (not getattr(self, "path", None)) and (not getattr(self, "packages_path", None)):
+        if (not getattr(self, "path", None)) and (not getattr(self, packages_path_input, None)):
             raise LoggedError(
                 self.log,
-                "No path given to Hillipop data. Set the likelihood property 'path' or the common property '%s'.",
-                "packages_path",
+                "No path given to Hillipop data. Set the likelihood property "
+                f"'path' or the common property '{packages_path_input}'.",
             )
 
         # If no path specified, use the modules path
         data_file_path = os.path.normpath(
-            getattr(self, "path", None) or os.path.join(self.packages_path, "data")
+            getattr(self, "path", None) or os.path.join(self.packages_path, data_path)
         )
 
         self.data_folder = os.path.join(data_file_path, self.data_folder)
@@ -73,14 +73,14 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._nxfreq = self._nfreq * (self._nfreq + 1) // 2
         self._nxspec = self._nmap * (self._nmap - 1) // 2
         self._xspec2xfreq = self._xspec2xfreq()
-        self.log.debug("frequencies = {}".format(self.frequencies))
+        self.log.debug(f"frequencies = {self.frequencies}")
 
         # Get likelihood name and add the associated mode
         likelihood_name = self.__class__.__name__
-        likelihood_modes = [likelihood_name[i:i+2] for i in range(0,len(likelihood_name),2)]
+        likelihood_modes = [likelihood_name[i : i + 2] for i in range(0, len(likelihood_name), 2)]
         self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE"]}
         self._is_mode["ET"] = self._is_mode["TE"]
-        self.log.debug("mode = {}".format(self._is_mode))
+        self.log.debug(f"mode = {self._is_mode}")
 
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
@@ -94,7 +94,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Weights
         dlsig = self._read_dl_xspectra(basename, field=2)
         dlsig[dlsig == 0] = np.inf
-        self._dlweight = 1.0 / dlsig ** 2
+        self._dlweight = 1.0 / dlsig**2
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
@@ -103,8 +103,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not m or likelihood_name != m.group(1):
             raise LoggedError(
                 self.log,
-                "The covariance matrix mode differs from the likelihood mode. Check the given path [%s]",
-                self.covariance_matrix_file,
+                "The covariance matrix mode differs from the likelihood mode. "
+                f"Check the given path [{self.covariance_matrix_file}]",
             )
         self._invkll = self._read_invcovmatrix(filename)
 
@@ -115,12 +115,13 @@ class _HillipopLikelihood(InstallableLikelihood):
         if self._is_mode["TT"]:
             for name in self.foregrounds["TT"].keys():
                 if name not in fg_list.keys():
-                    raise LoggedError(self.log, "Unkown foreground model '%s'!", name)
-
-                self.log.debug("Adding '{}' foreground for TT".format(name))
+                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
+                self.log.debug(f"Adding '{name}' foreground for TT")
                 kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode="TT")
                 if isinstance(self.foregrounds["TT"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TT"][name])
+                    kwargs["filename"] = os.path.join(
+                        self.data_folder, self.foregrounds["TT"][name]
+                    )
                 fgsTT.append(fg_list[name](**kwargs))
         self.fgs.append(fgsTT)
 
@@ -129,8 +130,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         if self._is_mode["EE"]:
             for name in self.foregrounds["EE"].keys():
                 if name not in fg_list.keys():
-                    raise LoggedError(self.log, "Unkown foreground model '%s'!", name)
-                self.log.debug("Adding '{}' foreground for EE".format(name))
+                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
+                self.log.debug(f"Adding '{name}' foreground for EE")
                 filename = os.path.join(self.data_folder, self.foregrounds["EE"].get(name))
                 fgsEE.append(
                     fg_list[name](self.lmax, self.frequencies, mode="EE", filename=filename)
@@ -143,8 +144,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         if self._is_mode["TE"]:
             for name in self.foregrounds["TE"].keys():
                 if name not in fg_list.keys():
-                    raise LoggedError(self.log, "Unkown foreground model '%s'!", name)
-                self.log.debug("Adding '{}' foreground for TE".format(name))
+                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
+                self.log.debug(f"Adding '{name}' foreground for TE")
                 filename = os.path.join(self.data_folder, self.foregrounds["TE"].get(name))
                 kwargs = dict(lmax=self.lmax, freqs=self.frequencies, filename=filename)
                 fgsTE.append(fg_list[name](mode="TE", **kwargs))
@@ -177,7 +178,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         """
         self.log.debug("Define multipole ranges")
         if not os.path.exists(filename):
-            raise ValueError("File missing {}".format(filename))
+            raise ValueError(f"File missing {filename}")
 
         lmins = []
         lmaxs = []
@@ -187,9 +188,9 @@ class _HillipopLikelihood(InstallableLikelihood):
             lmins.append(np.array(data.field(0), int))
             lmaxs.append(np.array(data.field(1), int))
             if self._is_mode[tags[hdu]]:
-                self.log.debug("%s" % (tags[hdu]))
-                self.log.debug("lmin: {}".format(np.array(data.field(0), int)))
-                self.log.debug("lmax: {}".format(np.array(data.field(1), int)))
+                self.log.debug(f"{tags[hdu]}")
+                self.log.debug(f"lmin: {np.array(data.field(0), int)}")
+                self.log.debug(f"lmax: {np.array(data.field(1), int)}")
 
         return lmins, lmaxs
 
@@ -204,11 +205,11 @@ class _HillipopLikelihood(InstallableLikelihood):
         for m1, m2 in combinations(range(self._nmap), 2):
             tmpcl = []
             for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
-                filename = "{}_{}_{}.fits".format(basename, m1, m2)
+                filename = f"{basename}_{m1}_{m2}.fits"
                 if mode == "ET":
-                    filename = "{}_{}_{}.fits".format(basename, m2, m1)
+                    filename = f"{basename}_{m2}_{m1}.fits"
                 if not os.path.exists(filename):
-                    raise ValueError("File missing {}".format(filename))
+                    raise ValueError(f"File missing {filename}")
                 data = fits.getdata(filename, hdu)
                 ell = np.array(data.field(0), int)
                 datacl = np.zeros(np.max(ell) + 1)
@@ -224,18 +225,18 @@ class _HillipopLikelihood(InstallableLikelihood):
         Read xspectra inverse covmatrix from Xpol [Dl in K^-4]
         Output: invkll [Dl in muK^-4]
         """
-        self.log.debug("Covariance matrix file: {}".format(filename))
+        self.log.debug(f"Covariance matrix file: {filename}")
         if not os.path.exists(filename):
-            raise ValueError("File missing {}".format(filename))
+            raise ValueError(f"File missing {filename}")
 
-#        data = fits.getdata(filename).field(0)
+        #        data = fits.getdata(filename).field(0)
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
 
         nell = self._get_matrix_size()
         if nel != nell:
-            raise ValueError("Incoherent covariance matrix (read:%d, expected:%d)" % (nel, nell))
+            raise ValueError(f"Incoherent covariance matrix (read:{nel}, expected:{nell})")
 
         return data
 
@@ -284,11 +285,13 @@ class _HillipopLikelihood(InstallableLikelihood):
             return xcl, xw8
 
     def _compute_residuals(self, pars, dlth, mode=0):
-
         # Nuisances
         cal = []
         for m1, m2 in combinations(range(self._nmap), 2):
-            cal.append(pars["A_planck"] ** 2 * (1. + pars["cal%s" % self._mapnames[m1]] + pars["cal%s" % self._mapnames[m2]]))
+            cal.append(
+                pars["A_planck"] ** 2
+                * (1.0 + pars[f"cal{self._mapnames[m1]}"] + pars[f"cal{self._mapnames[m2]}"])
+            )
 
         # Data
         dldata = self._dldata[mode]
@@ -363,7 +366,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         Xl = np.array(Xl)
         chi2 = Xl @ self._invkll @ Xl
 
-        self.log.debug("chi2/ndof = {}/{}".format(chi2, len(Xl)))
+        self.log.debug(f"chi2/ndof = {chi2}/{len(Xl)}")
         return chi2
 
     def get_requirements(self):
@@ -403,24 +406,29 @@ class _HillipopLikelihood(InstallableLikelihood):
 
     @classmethod
     def get_path(cls, path):
-        return os.path.realpath(os.path.join(path, "data"))
+        if path.rstrip(os.sep).endswith(data_path):
+            return path
+        return os.path.realpath(os.path.join(path, data_path))
 
     @classmethod
     def is_installed(cls, **kwargs):
-        log = logging.getLogger(cls.__name__)
         if kwargs.get("data", True):
-            path = kwargs["path"]
+            path = cls.get_path(kwargs["path"])
             if not (
                 cls.get_install_options() and os.path.exists(path) and len(os.listdir(path)) > 0
             ):
                 return False
             # Test if the covariance file is there
-            test_path = os.path.join(path, "**/*_{}.fits".format(cls.__name__))
+            test_path = os.path.join(path, f"**/*_{cls.__name__}.fits")
             return len(glob.glob(test_path, recursive=True)) > 0
         return True
 
 
 # ------------------------------------------------------------------------------------------------
+
+
+def _get_install_options(filename):
+    return {"download_url": f"{data_url}/{filename}"}
 
 
 class TTTEEE(_HillipopLikelihood):
@@ -430,7 +438,7 @@ class TTTEEE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTEEE_v1.1.tar.gz".format(data_url)}
+    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v1.1.tar.gz")
 
 
 class TTTE(_HillipopLikelihood):
@@ -440,7 +448,7 @@ class TTTE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TTTE_v1.1.tar.gz".format(data_url)}
+    install_options = _get_install_options("planck_2020_hillipop_TTTE_v1.1.tar.gz")
 
 
 class TT(_HillipopLikelihood):
@@ -450,7 +458,7 @@ class TT(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TT_v1.1.tar.gz".format(data_url)}
+    install_options = _get_install_options("planck_2020_hillipop_TT_v1.1.tar.gz")
 
 
 class EE(_HillipopLikelihood):
@@ -460,7 +468,7 @@ class EE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_EE_v1.1.tar.gz".format(data_url)}
+    install_options = _get_install_options("planck_2020_hillipop_EE_v1.1.tar.gz")
 
 
 class TE(_HillipopLikelihood):
@@ -470,4 +478,4 @@ class TE(_HillipopLikelihood):
 
     """
 
-    install_options = {"download_url": "{}/planck_2020_hillipop_TE_v1.1.tar.gz".format(data_url)}
+    install_options = _get_install_options("planck_2020_hillipop_TE_v1.1.tar.gz")
