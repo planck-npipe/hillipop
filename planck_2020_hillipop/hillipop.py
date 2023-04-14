@@ -89,12 +89,13 @@ class _HillipopLikelihood(InstallableLikelihood):
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
-        self._dldata = self._read_dl_xspectra(basename, field=1)
+        self._dldata = self._read_dl_xspectra(basename)
 
         # Weights
-        dlsig = self._read_dl_xspectra(basename, field=2)
-        dlsig[dlsig == 0] = np.inf
-        self._dlweight = 1.0 / dlsig**2
+#        dlsig = self._read_dl_xspectra(basename, field=2)
+#        dlsig[dlsig == 0] = np.inf
+#        self._dlweight = 1.0 / dlsig**2
+        self._dlweight = np.ones(np.shape(self._dldata))
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
@@ -107,6 +108,7 @@ class _HillipopLikelihood(InstallableLikelihood):
                 f"Check the given path [{self.covariance_matrix_file}]",
             )
         self._invkll = self._read_invcovmatrix(filename)
+        self._invkll = self._invkll.astype('float32')
 
         # Foregrounds
         self.fgs = []  # list of foregrounds per mode [TT,EE,TE,ET]
@@ -194,29 +196,20 @@ class _HillipopLikelihood(InstallableLikelihood):
 
         return lmins, lmaxs
 
-    def _read_dl_xspectra(self, basename, field=1):
+    def _read_dl_xspectra(self, basename):
         """
         Read xspectra from Xpol [Dl in K^2]
         Output: Dl in muK^2
         """
-        self.log.debug("Reading cross-spectra {}".format("errors" if field == 2 else ""))
+        self.log.debug("Reading cross-spectra")
 
         dldata = []
-        for m1, m2 in combinations(range(self._nmap), 2):
-            tmpcl = []
-            for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
-                filename = f"{basename}_{m1}_{m2}.fits"
-                if mode == "ET":
-                    filename = f"{basename}_{m2}_{m1}.fits"
-                if not os.path.exists(filename):
-                    raise ValueError(f"File missing {filename}")
-                data = fits.getdata(filename, hdu)
-                ell = np.array(data.field(0), int)
-                datacl = np.zeros(np.max(ell) + 1)
-                datacl[ell] = data.field(field) * 1e12
-                tmpcl.append(datacl[: self.lmax + 1])
-
-            dldata.append(tmpcl)
+        for m1, m2 in combinations(self._mapnames, 2):
+            data = fits.getdata( f"{basename}_{m1}x{m2}.fits")*1e12
+            tmpcl = list(data[[0,1,3],:self.lmax+1])
+            data = fits.getdata( f"{basename}_{m2}x{m1}.fits")*1e12
+            tmpcl.append( data[3,:self.lmax+1])
+            dldata.append( tmpcl)
 
         return np.transpose(np.array(dldata), (1, 0, 2))
 
@@ -229,7 +222,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError(f"File missing {filename}")
 
-        #        data = fits.getdata(filename).field(0)
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
