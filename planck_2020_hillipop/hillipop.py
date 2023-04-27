@@ -21,7 +21,8 @@ from . import tools
 # list of available foreground models
 fg_list = {
     "ps": fg.ps,
-    "dust": fg.dust_model,
+    "dust": fg.dust,
+    "dust_model": fg.dust_model,
     "ksz": fg.ksz_model,
     "ps_radio": fg.ps_radio,
     "ps_dusty": fg.ps_dusty,
@@ -121,9 +122,11 @@ class _HillipopLikelihood(InstallableLikelihood):
                 self.log.debug(f"Adding '{name}' foreground for TT")
                 kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode="TT")
                 if isinstance(self.foregrounds["TT"][name], str):
-                    kwargs["filename"] = os.path.join(
-                        self.data_folder, self.foregrounds["TT"][name]
-                    )
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TT"][name])
+                elif name == "szxcib":
+                    filename_tsz = self.foregrounds["TT"]["tsz"] and os.path.join(self.data_folder, self.foregrounds["TT"]["tsz"])
+                    filename_cib = self.foregrounds["TT"]["cib"] and os.path.join(self.data_folder, self.foregrounds["TT"]["cib"])
+                    kwargs["filenames"] = (filename_tsz,filename_cib)
                 fgsTT.append(fg_list[name](**kwargs))
         self.fgs.append(fgsTT)
 
@@ -134,10 +137,10 @@ class _HillipopLikelihood(InstallableLikelihood):
                 if name not in fg_list.keys():
                     raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
                 self.log.debug(f"Adding '{name}' foreground for EE")
-                filename = os.path.join(self.data_folder, self.foregrounds["EE"].get(name))
-                fgsEE.append(
-                    fg_list[name](self.lmax, self.frequencies, mode="EE", filename=filename)
-                )
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
+                if isinstance(self.foregrounds["EE"][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["EE"][name])
+                fgsEE.append(fg_list[name](mode="EE", **kwargs))
         self.fgs.append(fgsEE)
 
         # Init foregrounds TE
@@ -148,8 +151,9 @@ class _HillipopLikelihood(InstallableLikelihood):
                 if name not in fg_list.keys():
                     raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
                 self.log.debug(f"Adding '{name}' foreground for TE")
-                filename = os.path.join(self.data_folder, self.foregrounds["TE"].get(name))
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, filename=filename)
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
+                if isinstance(self.foregrounds["TE"][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TE"][name])
                 fgsTE.append(fg_list[name](mode="TE", **kwargs))
                 fgsET.append(fg_list[name](mode="ET", **kwargs))
         self.fgs.append(fgsTE)
@@ -280,10 +284,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Nuisances
         cal = []
         for m1, m2 in combinations(range(self._nmap), 2):
-            cal.append(
-                pars["A_planck"] ** 2
-                * (1.0 + pars[f"cal{self._mapnames[m1]}"] + pars[f"cal{self._mapnames[m2]}"])
-            )
+            cal1, cal2 = pars[f"cal{self._mapnames[m1]}"], pars[f"cal{self._mapnames[m2]}"]
+            cal.append(pars["A_planck"] ** 2 * (1.0 + cal1 + cal2))
 
         # Data
         dldata = self._dldata[mode]
@@ -355,8 +357,9 @@ class _HillipopLikelihood(InstallableLikelihood):
             # select multipole range
             Xl += self._select_spectra(Rl / Wl, mode=2)
 
-        Xl = np.array(Xl)
-        chi2 = Xl @ self._invkll @ Xl
+        Xl = np.array(Xl).astype('float32')
+#        chi2 = Xl @ self._invkll @ Xl
+        chi2 = self._invkll.dot(Xl).dot(Xl)
 
         self.log.debug(f"chi2/ndof = {chi2}/{len(Xl)}")
         return chi2
