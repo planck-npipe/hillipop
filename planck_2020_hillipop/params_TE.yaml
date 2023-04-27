@@ -20,6 +20,33 @@
     proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
 
+  #Dust model
+  AdustT:
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 10.
+#    ref: 1.0
+#    proposal: 0.02
+    latex: A_\mathrm{dust}^\mathrm{T}
+  AdustP:
+    value: 0.
+#    prior:
+#      min: 0.
+#      max: 10.
+#    ref: 2.0
+#    proposal: 0.02
+    latex: A_\mathrm{dust}^\mathrm{P}
+  beta_dust:
+    value: 1.5
+#    prior:
+#      dist: norm
+#      loc: 1.5
+#      scale: 0.06
+#    ref: 1.5
+#    proposal: 0.05
+    latex: \beta_\mathrm{dust}
+
   Ad100T:
     value: "lambda Ad100: Ad100"
     latex: A_\mathrm{dust}^\mathrm{100T}

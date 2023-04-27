@@ -1,51 +1,81 @@
+  #Point Sources
   Aps_100x100:
     prior:
-      min: 200
+      min: 100
       max: 400
-    ref: 283
-    proposal: 10
+    ref: 312.
+    proposal: 23.
     latex: A^\mathrm{PS}(100x100)
   Aps_100x143:
     prior:
-      min: 100
-      max: 150
-    ref: 128
-    proposal: 10
+      min: 0
+      max: 300
+    ref: 176.
+    proposal: 16.
     latex: A^\mathrm{PS}(100x143)
   Aps_100x217:
     prior:
-      min: 50
-      max: 150
-    ref: 90
-    proposal: 10
+      min: 0
+      max: 300
+    ref: 143.
+    proposal: 28.
     latex: A^\mathrm{PS}(100x217)
   Aps_143x143:
     prior:
-      min: 20
-      max: 70
-    ref: 49.5
-    proposal: 10
+      min: 0
+      max: 300
+    ref: 100.
+    proposal: 14.
     latex: A^\mathrm{PS}(143x143)
   Aps_143x217:
     prior:
-      min: 20
-      max: 70
-    ref: 35
-    proposal: 10
+      min: 0
+      max: 300
+    ref: 82.
+    proposal: 19.
     latex: A^\mathrm{PS}(143x217)
   Aps_217x217:
     prior:
-      min: 50
-      max: 100
-    ref: 70
-    proposal: 10
+      min: 0
+      max: 300
+    ref: 135.
+    proposal: 11.
     latex: A^\mathrm{PS}(217x217)
+
+  #Point Sources models
   Aradio:
     value: 0.
     latex: A_\mathrm{radio}^\mathrm{PS}
+  alpha_s:
+    value: -0.5
+    latex: \alpha_\mathrm{syn}^\mathrm{PS}
   Adusty:
     value: 0.
-    latex: A_\mathrm{dust}^\mathrm{PS}
+    latex: A_\mathrm{IR}^\mathrm{PS}
+  beta_dusty:
+    value: 1.75
+    latex: \beta_\mathrm{IR}^\mathrm{PS}
+
+  #Dust model
+  AdustT:
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 10.
+#    ref: 1.0
+#    proposal: 0.02
+    latex: A_\mathrm{dust}^\mathrm{T}
+  beta_dust:
+    value: 1.5
+#    prior:
+#      dist: norm
+#      loc: 1.5
+#      scale: 0.06
+#    ref: 1.5
+#    proposal: 0.05
+    latex: \beta_\mathrm{dust}
+
+  #Dust
   Ad100:
     prior:
       min: 0.0
@@ -67,35 +97,6 @@
     ref: 0.13
     proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
-  Asz:
-    prior:
-      dist: norm
-      loc: 1.0
-      scale: 0.2
-    proposal: 0.1
-    latex: A_\mathrm{SZ}
-  Acib:
-    prior:
-      dist: norm
-      loc: 1.0
-      scale: 0.2
-    proposal: 0.1
-    latex: A_\mathrm{CIB}
-  Aksz:
-    prior:
-      min: 0
-      max: 10
-    ref: 0.6
-    proposal: 1
-    latex: A_\mathrm{kSZ}
-  Aszxcib:
-    prior:
-      min: 0
-      max: 10
-    ref: 1.0
-    proposal: 1
-    latex: A_\mathrm{SZxCIB}
-
   Ad100T:
     value: "lambda Ad100: Ad100"
     latex: A_\mathrm{dust}^\mathrm{100T}
@@ -105,3 +106,47 @@
   Ad217T:
     value: "lambda Ad217: Ad217"
     latex: A_\mathrm{dust}^\mathrm{217T}
+
+  #Cosmic Infrared Background
+  Acib:
+    prior:
+      min: 0.
+      max: 20.
+    ref: 4.0
+    proposal: 1
+    latex: A_\mathrm{CIB}
+  beta_cib:
+    prior:
+      dist: norm
+      loc: 1.75
+      scale: 0.06
+    ref: 1.75
+    proposal: 0.05
+    latex: \beta_\mathrm{CIB}
+
+  #Sunyaev-Zeldovich
+  Atsz:
+    prior:
+      min: 0.
+      max: 50.
+    ref: 3.0
+    proposal: 1
+    latex: A_\mathrm{tSZ}
+  Aksz:
+    prior:
+      min: 0
+      max: 50
+    ref: 1.
+    proposal: 1
+    latex: A_\mathrm{kSZ}
+
+  #tSZxCIB
+  xi:
+    prior:
+      min: -1.
+      max: 1.
+    ref: 0.1
+    proposal: 0.1
+    latex: \xi_\mathrm{SZxCIB}
+
+
