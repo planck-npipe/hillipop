@@ -1,9 +1,6 @@
 debug: True
 
 likelihood:
-  planck_2020_hillipop.TT: null
-  planck_2020_hillipop.EE: null
-  planck_2020_hillipop.TE: null
   planck_2020_hillipop.TTTEEE: null
 
 params:
