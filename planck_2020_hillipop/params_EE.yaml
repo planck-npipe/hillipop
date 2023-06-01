@@ -1,41 +1,42 @@
   Ad100:
-    prior:
-      min: 0.0
-      max: 0.1
-    ref: 0.02
-    proposal: 0.02
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.1
+#    ref: 0.02
+#    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{100}
   Ad143:
-    prior:
-      min: 0.0
-      max: 0.1
-    ref: 0.04
-    proposal: 0.02
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.1
+#    ref: 0.04
+#    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{143}
   Ad217:
-    prior:
-      min: 0.0
-      max: 0.2
-    ref: 0.13
-    proposal: 0.05
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.2
+#    ref: 0.13
+#    proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
 
   AdustP:
-    value: 0.
-#    prior:
-#      min: 0.
-#      max: 10.
-#    ref: 2.0
-#    proposal: 0.02
+    prior:
+      min: 0.
+      max: 10.
+    ref: 1.0
+    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{P}
   beta_dust:
-    value: 1.5
-#    prior:
-#      dist: norm
-#      loc: 1.5
-#      scale: 0.06
-#    ref: 1.5
-#    proposal: 0.05
+    prior:
+      dist: norm
+      loc: 1.5
+      scale: 0.06
+    ref: 1.5
+    proposal: 0.05
     latex: \beta_\mathrm{dust}
 
   Ad100P:

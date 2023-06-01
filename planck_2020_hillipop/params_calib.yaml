@@ -13,38 +13,59 @@
   cal100A:
     prior:
       dist: norm
-      loc: 0.0
+      loc: 1.0
       scale: 0.002
     proposal: 0.001
-    latex: cal_\mathrm{100A}
+    latex: c_\mathrm{100A}
   cal100B:
     prior:
       dist: norm
-      loc: 0.0
+      loc: 1.0
       scale: 0.002
     proposal: 0.001
-    latex: cal_\mathrm{100B}
+    latex: c_\mathrm{100B}
   cal143A:
-    value: 0.0
-    latex: cal_\mathrm{143A}
+    value: 1.0
+    latex: c_\mathrm{143A}
   cal143B:
     prior:
       dist: norm
-      loc: 0.0
+      loc: 1.0
       scale: 0.002
     proposal: 0.001
-    latex: cal_\mathrm{143B}
+    latex: c_\mathrm{143B}
   cal217A:
     prior:
       dist: norm
-      loc: 0.0
+      loc: 1.0
       scale: 0.002
     proposal: 0.001
-    latex: cal_\mathrm{217A}
+    latex: c_\mathrm{217A}
   cal217B:
     prior:
       dist: norm
-      loc: 0.0
+      loc: 1.0
       scale: 0.002
     proposal: 0.001
-    latex: cal_\mathrm{217B}
+    latex: c_\mathrm{217B}
+
+  #Polar efficiency
+  pol100A:
+    value: 1.
+    latex: \eta_\mathrm{100A}
+  pol100B:
+    value: 1.
+    latex: \eta_\mathrm{100B}
+  pol143A:
+    value: 1.
+    latex: \eta_\mathrm{143A}
+  pol143B:
+    value: 1.
+    latex: \eta_\mathrm{143B}
+  pol217A:
+    value: 1.
+    latex: \eta_\mathrm{217A}
+  pol217B:
+    value: 1.
+    latex: \eta_\mathrm{217B}
+  

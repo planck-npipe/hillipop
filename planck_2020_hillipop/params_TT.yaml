@@ -1,101 +1,121 @@
   #Point Sources
   Aps_100x100:
-    prior:
-      min: 100
-      max: 400
-    ref: 312.
-    proposal: 23.
+    value : 0.
+#    prior:
+#      min: 100
+#      max: 400
+#    ref: 312.
+#    proposal: 23.
     latex: A^\mathrm{PS}(100x100)
   Aps_100x143:
-    prior:
-      min: 0
-      max: 300
-    ref: 176.
-    proposal: 16.
+    value : 0.
+#    prior:
+#      min: 0
+#      max: 300
+#    ref: 176.
+#    proposal: 16.
     latex: A^\mathrm{PS}(100x143)
   Aps_100x217:
-    prior:
-      min: 0
-      max: 300
-    ref: 143.
-    proposal: 28.
+    value : 0.
+#    prior:
+#      min: 0
+#      max: 300
+#    ref: 143.
+#    proposal: 28.
     latex: A^\mathrm{PS}(100x217)
   Aps_143x143:
-    prior:
-      min: 0
-      max: 300
-    ref: 100.
-    proposal: 14.
+    value : 0.
+#    prior:
+#      min: 0
+#      max: 300
+#    ref: 100.
+#    proposal: 14.
     latex: A^\mathrm{PS}(143x143)
   Aps_143x217:
-    prior:
-      min: 0
-      max: 300
-    ref: 82.
-    proposal: 19.
+    value : 0.
+#    prior:
+#      min: 0
+#      max: 300
+#    ref: 82.
+#    proposal: 19.
     latex: A^\mathrm{PS}(143x217)
   Aps_217x217:
-    prior:
-      min: 0
-      max: 300
-    ref: 135.
-    proposal: 11.
+    value : 0.
+#    prior:
+#      min: 0
+#      max: 300
+#    ref: 135.
+#    proposal: 11.
     latex: A^\mathrm{PS}(217x217)
 
   #Point Sources models
   Aradio:
-    value: 0.
+    prior:
+      min: 0.
+      max: 100.
+    ref: 60.
+    proposal: 1.
     latex: A_\mathrm{radio}^\mathrm{PS}
   alpha_s:
     value: -0.5
     latex: \alpha_\mathrm{syn}^\mathrm{PS}
   Adusty:
-    value: 0.
+    prior:
+      min: 0.
+      max: 100.
+    ref: 6.
+    proposal: 1.
     latex: A_\mathrm{IR}^\mathrm{PS}
   beta_dusty:
-    value: 1.75
+    prior:
+      dist: norm
+      loc: 1.75
+      scale: 0.06
+    ref: 1.75
+    proposal: 0.05
     latex: \beta_\mathrm{IR}^\mathrm{PS}
 
   #Dust model
   AdustT:
-    value: 0.
-#    prior:
-#      min: 0.0
-#      max: 10.
-#    ref: 1.0
-#    proposal: 0.02
+    prior:
+      min: 0.0
+      max: 10.
+    ref: 1.0
+    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{T}
   beta_dust:
-    value: 1.5
-#    prior:
-#      dist: norm
-#      loc: 1.5
-#      scale: 0.06
-#    ref: 1.5
-#    proposal: 0.05
+    prior:
+      dist: norm
+      loc: 1.5
+      scale: 0.06
+    ref: 1.5
+    proposal: 0.05
     latex: \beta_\mathrm{dust}
 
   #Dust
   Ad100:
-    prior:
-      min: 0.0
-      max: 0.1
-    ref: 0.02
-    proposal: 0.02
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.1
+#    ref: 0.02
+#    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{100}
   Ad143:
-    prior:
-      min: 0.0
-      max: 0.1
-    ref: 0.04
-    proposal: 0.02
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.1
+#    ref: 0.04
+#    proposal: 0.02
     latex: A_\mathrm{dust}^\mathrm{143}
   Ad217:
-    prior:
-      min: 0.0
-      max: 0.2
-    ref: 0.13
-    proposal: 0.05
+    value: 0.
+#    prior:
+#      min: 0.0
+#      max: 0.2
+#    ref: 0.13
+#    proposal: 0.05
     latex: A_\mathrm{dust}^\mathrm{217}
   Ad100T:
     value: "lambda Ad100: Ad100"
