@@ -1,5 +1,6 @@
-# FOREGROUNDS V3 (Planck 2018)
+# FOREGROUNDS V4 (Planck 2020)
 import astropy.io.fits as fits
+import os
 import numpy as np
 import itertools
 from cobaya.log import HasLogger, LoggedError
@@ -100,14 +101,18 @@ class fgmodel(HasLogger):
         WARNING: need to check file before reading...
         """
 
+        if not os.path.exists(filename):
+            raise LoggedError( self.log, "Missing file: %s", self.filename)
+
         #read dl template
         l,data = np.loadtxt( filename, unpack=True)
+        l = np.array(l,int)
         self.log.debug( "Template: {}".format(filename))
 
         if max(l) < self.lmax:
             self.log.info( "WARNING: template {} has lower lmax (filled with 0)".format(filename))
-        template = np.zeros( max(self.lmax,int(max(l))) + 1)
-        template[np.array(l,int)] = data
+        template = np.zeros( max(self.lmax,max(l)) + 1)
+        template[l] = data
 
         #normalize l=3000
         if lnorm is not None:
@@ -194,25 +199,25 @@ class dust(fgmodel):
         
         self.dlg = []
         if filename is None:
-            alpha_dust = -2.5 if mode == "TT" else -2.4
+            alpha_dust = -2.4 if mode == "EE" else -2.5
             dlg = self._gen_dl_powerlaw( alpha_dust, lnorm=80)
 
-            #amplitude for Cl dust at 353GHz and l=80
+            #amplitude for Cl dust at 353GHz and l=80 on XXL for fixed alpha
             self.A353 = {"TT": {100:39000,143:19000,217:11500},
-                         "EE": {100:433,143:290,217:159},
-                         "TE": {100:1040,143:700,217:430},
-                         "ET": {100:1040,143:700,217:430}}
+                         "EE": {100:463,143:300,217:160},
+                         "TE": {100:1150,143:850,217:450},
+                         "ET": {100:1150,143:850,217:450}}
 
             for f1, f2 in self._cross_frequencies:
                 self.dlg.append(dlg*self.A353[self.mode][np.max([f1,f2])])
         else:
-            icol = ["TT","EE","BB","TE","ET"].index(mode)
+            hdr = ["ell","100x100","100x143","100x217","143x143","143x217","217x217"]
+            data = np.loadtxt( f"{filename}_{mode}.txt").T
+            l = np.array(data[0],int)
             for f1, f2 in self._cross_frequencies:
-                dust_in = fits.getdata("%s_%dx%d.fits" % (filename, f1, f2))
-                ell = np.array(dust_in.field(0), int)
-                tmpl = np.zeros(max(ell) + 1)
-                tmpl[ell] = ell * (ell + 1) / 2.0 / np.pi * dust_in.field(icol+1)
-                self.dlg.append(tmpl[: lmax + 1])
+                tmpl = np.zeros(max(l) + 1)
+                tmpl[l] = data[hdr.index(f"{f1}x{f2}")]
+                self.dlg.append( tmpl[:lmax+1])
 
         self.dlg = np.array(self.dlg)
 
@@ -234,18 +239,19 @@ class dust(fgmodel):
 
 
 class dust_model(fgmodel):
-    def __init__(self, lmax, freqs, mode="TT", auto=False):
+    def __init__(self, lmax, freqs, filename=None, mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         self.name = "Dust model"
         
-        alpha_dust = -2.5 if mode == "TT" else -2.4
-        self.dlg = self._gen_dl_powerlaw( alpha_dust, lnorm=80)
-
-        #amplitude for Cl dust at 353GHz and l=80
-        self.A353 = {"TT": {100:39000,143:19000,217:11500},
-                     "EE": {100:433,143:290,217:159},
-                     "TE": {100:1040,143:700,217:430},
-                     "ET": {100:1040,143:700,217:430} }
+        self.dlg = []
+        hdr = ["ell","100x100","100x143","100x217","143x143","143x217","217x217"]
+        data = np.loadtxt( f"{filename}_{mode}.txt").T
+        l = np.array(data[0],int)
+        for f1, f2 in self._cross_frequencies:
+            tmpl = np.zeros(max(l) + 1)
+            tmpl[l] = data[hdr.index(f"{f1}x{f2}")]
+            self.dlg.append( tmpl[:lmax+1])
+        self.dlg = np.array(self.dlg)
 
     def compute_dl(self, pars):
         if   self.mode == "TT": Adust = pars['AdustT']*pars['AdustT']
@@ -255,8 +261,8 @@ class dust_model(fgmodel):
         else: Adust = 0.
 
         dl = []
-        for f1, f2 in self._cross_frequencies:
-            dl.append( Adust * self.A353[self.mode][np.max([f1,f2])] * self.dlg
+        for xf, (f1, f2) in enumerate(self._cross_frequencies):
+            dl.append( Adust * self.dlg[xf]
                        * self._dustRatio(self.fdust[f1],353,pars['beta_dust'],19.6)
                        * self._dustRatio(self.fdust[f2],353,pars['beta_dust'],19.6)
                        )
@@ -379,21 +385,3 @@ class szxcib_model(fgmodel):
             return -1. * pars["xi"] * np.array(dl_szxcib)
         else:
             return 0.
-
-## class szxcib_model(fgmodel):
-##     def __init__(self, lmax, freqs, filename, mode="TT", auto=False):
-##         super().__init__(lmax, freqs, auto)
-##         self.name = "SZxCIB"
-##         self.dl_szxcib = []
-##         for f1, f2 in self._cross_frequencies:
-##             cldata = fits.getdata("%s_%dx%d.fits" % (filename, f1, f2))
-##             ell = np.array(cldata.ELL, int)
-##             tmpl = np.zeros(max(ell) + 1)
-##             ll2pi = ell * (ell + 1) / 2.0 / np.pi
-##             tmpl[ell] = ll2pi * cldata.CL / self.gnu[f1] / self.gnu[f2]
-##             self.dl_szxcib.append(tmpl[: lmax + 1])
-##         self.dl_szxcib = np.array(self.dl_szxcib)
-
-##     def compute_dl(self, pars):
-##         return pars["Aszxcib"] * self.dl_szxcib
-
