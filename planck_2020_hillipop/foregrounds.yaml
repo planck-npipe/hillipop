@@ -1,10 +1,10 @@
   TT:
     dust: null
-    dust_model: null
-    tsz: foregrounds/SZ_planck_npipe_model.txt
-    ksz: foregrounds/kSZ_planck_npipe_model.txt
-    cib: foregrounds/CIB_planck_npipe_model.txt
-    szxcib: foregrounds/sz_x_cib_template.dat
+    dust_model: foregrounds/DUST_Planck_PR4_model_XXL
+    tsz: foregrounds/SZ_Planck_PR4_model.txt
+    ksz: foregrounds/kSZ_Planck_PR4_model.txt
+    cib: foregrounds/CIB_Planck_PR4_model.txt
+    szxcib: foregrounds/SZxCIB_Planck_PR4_model.txt
     ps_radio: null
     ps_dusty: null
     ps: null
