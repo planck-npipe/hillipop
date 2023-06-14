@@ -1,4 +1,4 @@
-# FOREGROUNDS V4 (Planck 2020)
+# FOREGROUNDS V4.2 (Planck 2020)
 import astropy.io.fits as fits
 import os
 import numpy as np
@@ -19,14 +19,11 @@ class fgmodel(HasLogger):
     Should return the model in Dl for a foreground emission given the parameters for all correlation of frequencies
     """
 
-    # Planck values
     feff = 143
 
-    # MJy.sr-1 -> Kcmb for (100,143,217) GHz
-    gnu = {100: 244.059, 143: 371.658, 217: 483.485}
-
+    # Planck effective frequencies
     fsz = {100:100.24, 143: 143, 217: 222}
-    fdust = {100:105.25, 143:148.23, 217:229.1, 353:372.19} #alpha=4 from [Planck 2013 IX]
+    fdust = {100:105.2, 143:147.5, 217:228.1, 353:370.5} #alpha=4 from [Planck 2013 IX]
     fcib = fdust
     fsyn = {100:100,143:143,217:217}
 
@@ -160,7 +157,7 @@ class ps_radio(fgmodel):
         for f1, f2 in self._cross_frequencies:
             dl.append(
                 self.ll2pi
-                * (self.fsyn[f1]*self.fsyn[f2]/self.feff**2)**pars['alpha_s']
+                * (self.fsyn[f1]*self.fsyn[f2]/self.feff**2)**pars['beta_s']
                 / ( self._dBdT(f1)*self._dBdT(f2)/self._dBdT(self.feff)**2 )
             )
 
@@ -198,26 +195,13 @@ class dust(fgmodel):
         self.name = "Dust"
         
         self.dlg = []
-        if filename is None:
-            alpha_dust = -2.4 if mode == "EE" else -2.5
-            dlg = self._gen_dl_powerlaw( alpha_dust, lnorm=80)
-
-            #amplitude for Cl dust at 353GHz and l=80 on XXL for fixed alpha
-            self.A353 = {"TT": {100:39000,143:19000,217:11500},
-                         "EE": {100:463,143:300,217:160},
-                         "TE": {100:1150,143:850,217:450},
-                         "ET": {100:1150,143:850,217:450}}
-
-            for f1, f2 in self._cross_frequencies:
-                self.dlg.append(dlg*self.A353[self.mode][np.max([f1,f2])])
-        else:
-            hdr = ["ell","100x100","100x143","100x217","143x143","143x217","217x217"]
-            data = np.loadtxt( f"{filename}_{mode}.txt").T
-            l = np.array(data[0],int)
-            for f1, f2 in self._cross_frequencies:
-                tmpl = np.zeros(max(l) + 1)
-                tmpl[l] = data[hdr.index(f"{f1}x{f2}")]
-                self.dlg.append( tmpl[:lmax+1])
+        hdr = ["ell","100x100","100x143","100x217","143x143","143x217","217x217"]
+        data = np.loadtxt( f"{filename}_{mode}.txt").T
+        l = np.array(data[0],int)
+        for f1, f2 in self._cross_frequencies:
+            tmpl = np.zeros(max(l) + 1)
+            tmpl[l] = data[hdr.index(f"{f1}x{f2}")]
+            self.dlg.append( tmpl[:lmax+1])
 
         self.dlg = np.array(self.dlg)
 
@@ -254,17 +238,16 @@ class dust_model(fgmodel):
         self.dlg = np.array(self.dlg)
 
     def compute_dl(self, pars):
-        if   self.mode == "TT": Adust = pars['AdustT']*pars['AdustT']
-        elif self.mode == "TE": Adust = pars['AdustT']*pars['AdustP']
-        elif self.mode == "ET": Adust = pars['AdustP']*pars['AdustT']
-        elif self.mode == "EE": Adust = pars['AdustP']*pars['AdustP']
-        else: Adust = 0.
+        if   self.mode == "TT": beta1,beta2 = pars['beta_dustT'],pars['beta_dustT']
+        elif self.mode == "TE": beta1,beta2 = pars['beta_dustT'],pars['beta_dustP']
+        elif self.mode == "ET": beta1,beta2 = pars['beta_dustP'],pars['beta_dustT']
+        elif self.mode == "EE": beta1,beta2 = pars['beta_dustP'],pars['beta_dustP']
 
         dl = []
         for xf, (f1, f2) in enumerate(self._cross_frequencies):
-            dl.append( Adust * self.dlg[xf]
-                       * self._dustRatio(self.fdust[f1],353,pars['beta_dust'],19.6)
-                       * self._dustRatio(self.fdust[f2],353,pars['beta_dust'],19.6)
+            dl.append( pars['Adust'] * self.dlg[xf]
+                       * self._dustRatio(self.fdust[f1],self.fdust[353],beta1,19.6)
+                       * self._dustRatio(self.fdust[f2],self.fdust[353],beta2,19.6)
                        )
         return np.array(dl)
 
