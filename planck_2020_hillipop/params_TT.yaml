@@ -52,13 +52,13 @@
   Aradio:
     prior:
       min: 0.
-      max: 100.
+      max: 150.
     ref: 60.
     proposal: 1.
     latex: A_\mathrm{radio}^\mathrm{PS}
-  alpha_s:
+  beta_s:
     value: -0.5
-    latex: \alpha_\mathrm{syn}^\mathrm{PS}
+    latex: \beta_\mathrm{syn}^\mathrm{PS}
   Adusty:
     prior:
       min: 0.
@@ -76,21 +76,22 @@
     latex: \beta_\mathrm{IR}^\mathrm{PS}
 
   #Dust model
-  AdustT:
+  Adust:
+    value: 1.0
+#    prior:
+#      dist: norm
+#      loc: 1.0
+#      scale: 0.1
+#    ref: 1.0
+#    proposal: 0.02
+    latex: A_\mathrm{dust}
+  beta_dustT:
     prior:
-      min: 0.0
-      max: 10.
-    ref: 1.0
-    proposal: 0.02
-    latex: A_\mathrm{dust}^\mathrm{T}
-  beta_dust:
-    prior:
-      dist: norm
-      loc: 1.5
-      scale: 0.06
-    ref: 1.5
+      min: 1.
+      max: 3.
+    ref: 1.51
     proposal: 0.05
-    latex: \beta_\mathrm{dust}
+    latex: \beta_\mathrm{dustT}
 
   #Dust
   Ad100:
@@ -164,7 +165,7 @@
   xi:
     prior:
       min: -1.
-      max: 1.
+      max: 5.
     ref: 0.1
     proposal: 0.1
     latex: \xi_\mathrm{SZxCIB}
