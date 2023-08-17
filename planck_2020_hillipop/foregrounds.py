@@ -1,4 +1,4 @@
-# FOREGROUNDS V4.2 (Planck 2020)
+# FOREGROUNDS V4.2 (Planck PR4)
 import astropy.io.fits as fits
 import os
 import numpy as np
@@ -19,13 +19,15 @@ class fgmodel(HasLogger):
     Should return the model in Dl for a foreground emission given the parameters for all correlation of frequencies
     """
 
-    feff = 143
+    #reference frequency for residuals amplitudes
+    f0 = 143
 
     # Planck effective frequencies
-    fsz = {100:100.24, 143: 143, 217: 222}
-    fdust = {100:105.2, 143:147.5, 217:228.1, 353:370.5} #alpha=4 from [Planck 2013 IX]
-    fcib = fdust
-    fsyn = {100:100,143:143,217:217}
+    fsz    = {100:100.24, 143: 143, 217: 222.044}
+    fdust  = {100:105.2, 143:147.5, 217:228.1, 353:370.5} #alpha=4 from [Planck 2013 IX]
+    fcib   = fdust
+    fsyn   = {100:100,143:143,217:217}
+    fradio = {100:100.4,143:140.5,217:218.6}
 
     def _f_tsz( self, freq):
         # Freq in GHz
@@ -39,6 +41,7 @@ class fgmodel(HasLogger):
         xx  = h_pl*nu /(k_b*T)
         return (nu**3.)/(np.exp(xx)-1.)
 
+    #Temp Antenna conversion
     def _dBdT(self, f):
         # Freq in GHz
         nu  = f*1e9
@@ -48,11 +51,17 @@ class fgmodel(HasLogger):
     def _tszRatio( self, f, f0):
         return self._f_tsz(f)/self._f_tsz(f0)
 
-    def _cibRatio( self, f, f0, beta, T=9.7):
+    def _cibRatio( self, f, f0, beta=1.75, T=25):
         return (f/f0)**beta * (self._f_Planck(f,T)/self._f_Planck(f0,T)) / ( self._dBdT(f)/self._dBdT(f0) )
 
     def _dustRatio( self, f, f0, beta=1.5, T=19.6):
         return (f/f0)**beta * (self._f_Planck(f,T)/self._f_Planck(f0,T)) / ( self._dBdT(f)/self._dBdT(f0) )
+
+    def _radioRatio( self, f, f0, beta=-0.7):
+        return (f/f0)**beta / ( self._dBdT(f)/self._dBdT(f0) )
+
+    def _syncRatio( self, f, f0, beta=-0.7):
+        return (f/f0)**beta / ( self._dBdT(f)/self._dBdT(f0) )
 
     def __init__(self, lmax, freqs, mode="TT", auto=False, **kwargs):
         """
@@ -122,9 +131,32 @@ class fgmodel(HasLogger):
         Return spectra model for each cross-spectra
         """
         pass
-
-
 # ------------------------------------------------------------------------------------------------
+
+
+
+# Subpixel effect
+class subpix(fgmodel):
+    def __init__(self, lmax, freqs, mode="TT", auto=False):
+        super().__init__(lmax, freqs, mode=mode, auto=auto)
+        self.name = "SubPixel"
+        self.fwhm = {100:9.68,143:7.30,217:5.02} #arcmin
+
+    def compute_dl(self, pars):
+        def _bl( fwhm):
+            sigma = np.deg2rad(fwhm/60.) / np.sqrt(8.0 * np.log(2.0))
+            ell = np.arange(self.lmax + 1)
+            return np.exp(-0.5 * ell * (ell + 1) * sigma**2)
+
+        dl_sbpx = []
+        for f1, f2 in self._cross_frequencies:
+            pxl = self.ll2pi / _bl( self.fwhm[f1]) / _bl( self.fwhm[f2])
+            dl_sbpx.append( pars["Asbpx_{}x{}".format(f1,f2)] * pxl / pxl[2500] )
+
+        if self.mode == "TT":
+            return np.array(dl_sbpx)
+        else:
+            return 0.
 
 
 
@@ -157,8 +189,8 @@ class ps_radio(fgmodel):
         for f1, f2 in self._cross_frequencies:
             dl.append(
                 self.ll2pi
-                * (self.fsyn[f1]*self.fsyn[f2]/self.feff**2)**pars['beta_s']
-                / ( self._dBdT(f1)*self._dBdT(f2)/self._dBdT(self.feff)**2 )
+                * self._radioRatio( self.fradio[f1], self.f0, beta=pars['beta_radio'])
+                * self._radioRatio( self.fradio[f2], self.f0, beta=pars['beta_radio'])
             )
 
         if self.mode == "TT":
@@ -178,8 +210,8 @@ class ps_dusty(fgmodel):
         for f1, f2 in self._cross_frequencies:
             dl.append(
                 self.ll2pi
-                * self._cibRatio(self.fcib[f1],self.feff,pars['beta_dusty'])
-                * self._cibRatio(self.fcib[f2],self.feff,pars['beta_dusty'])
+                * self._cibRatio( self.fcib[f1], self.f0, beta=pars['beta_dusty'])
+                * self._cibRatio( self.fcib[f2], self.f0, beta=pars['beta_dusty'])
             )
 
         if self.mode == "TT":
@@ -243,17 +275,51 @@ class dust_model(fgmodel):
         elif self.mode == "ET": beta1,beta2 = pars['beta_dustP'],pars['beta_dustT']
         elif self.mode == "EE": beta1,beta2 = pars['beta_dustP'],pars['beta_dustP']
 
+        if   self.mode == "TT": ad1,ad2 = pars['AdustT'],pars['AdustT']
+        elif self.mode == "TE": ad1,ad2 = pars['AdustT'],pars['AdustP']
+        elif self.mode == "ET": ad1,ad2 = pars['AdustP'],pars['AdustT']
+        elif self.mode == "EE": ad1,ad2 = pars['AdustP'],pars['AdustP']
+
         dl = []
         for xf, (f1, f2) in enumerate(self._cross_frequencies):
-            dl.append( pars['Adust'] * self.dlg[xf]
-                       * self._dustRatio(self.fdust[f1],self.fdust[353],beta1,19.6)
-                       * self._dustRatio(self.fdust[f2],self.fdust[353],beta2,19.6)
+            dl.append( ad1 * ad2 * self.dlg[xf]
+                       * self._dustRatio( self.fdust[f1], self.fdust[353], beta=beta1)
+                       * self._dustRatio( self.fdust[f2], self.fdust[353], beta=beta2)
                        )
         return np.array(dl)
 
 
+# Syncrothron model
+class sync_model(fgmodel):
+    def __init__(self, lmax, freqs, mode="TT", auto=False):
+        super().__init__(lmax, freqs, mode=mode, auto=auto)
+        self.name = "Synchrotron"
 
-# CIB model (one spectrum per xfreq)
+        #check effective freqs
+        for f in freqs:
+            if f not in self.fsyn:
+                raise ValueError( f"Missing SYNC effective frequency for {f}")
+
+        alpha_syn = -2.5  #Cl template power-law TBC
+        self.dl_syn = self._gen_dl_powerlaw( alpha_syn, lnorm=100)
+        self.beta_syn = -0.7
+
+    def compute_dl(self, pars):
+        dl = []
+        for f1, f2 in self._cross_frequencies:
+            dl.append( self.dl_syn
+                       * self._syncRatio( self.fsyn[f1], self.f0, beta=self.beta_syn)
+                       * self._syncRatio( self.fsyn[f2], self.f0, beta=self.beta_syn)
+                       )
+        if self.mode == "TT":
+            return pars["AsyncT"] * np.array(dl)
+        elif self.mode == "EE":
+            return pars["AsyncP"] * np.array(dl)
+        else:
+            return 0.
+
+
+# CIB model
 class cib_model(fgmodel):
     def __init__(self, lmax, freqs, filename=None, mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
@@ -274,8 +340,8 @@ class cib_model(fgmodel):
         dl = []
         for f1, f2 in self._cross_frequencies:
             dl.append( self.dl_cib
-                       * self._cibRatio(self.fcib[f1],self.feff,pars['beta_cib'])
-                       * self._cibRatio(self.fcib[f2],self.feff,pars['beta_cib'])
+                       * self._cibRatio( self.fcib[f1], self.f0, beta=pars['beta_cib'])
+                       * self._cibRatio( self.fcib[f2], self.f0, beta=pars['beta_cib'])
                        )
         if self.mode == "TT":
             return pars["Acib"] * np.array(dl)
@@ -300,8 +366,8 @@ class tsz_model(fgmodel):
         self.dl_sz = []
         for f1, f2 in self._cross_frequencies:
             self.dl_sz.append( sztmpl[: lmax + 1]
-                               * self._tszRatio(self.fsz[f1],self.feff)
-                               * self._tszRatio(self.fsz[f2],self.feff)
+                               * self._tszRatio( self.fsz[f1], self.f0)
+                               * self._tszRatio( self.fsz[f2], self.f0)
                                )
         self.dl_sz = np.array(self.dl_sz)
 
@@ -309,7 +375,7 @@ class tsz_model(fgmodel):
         return pars["Atsz"] * self.dl_sz
 
 
-# kSZ (one spectrum for all freqs)
+# kSZ
 class ksz_model(fgmodel):
     def __init__(self, lmax, freqs, filename="", mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
@@ -331,7 +397,7 @@ class ksz_model(fgmodel):
             return 0.
 
 
-# SZxCIB model (one spectrum per xfreq)
+# SZxCIB model
 class szxcib_model(fgmodel):
     def __init__(self, lmax, freqs, filename=None, mode="TT", auto=False, **kwargs):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
@@ -358,13 +424,13 @@ class szxcib_model(fgmodel):
     def compute_dl(self, pars):
         dl_szxcib = []
         for f1, f2 in self._cross_frequencies:
-            dl_szxcib.append( self.x_tmpl * np.sqrt(pars["Acib"]*pars["Atsz"]) * (
-                self._tszRatio(self.fsz[f2],self.feff) * self._cibRatio(self.fcib[f1], self.feff, pars['beta_cib']) +
-                self._tszRatio(self.fsz[f1],self.feff) * self._cibRatio(self.fcib[f2], self.feff, pars['beta_cib'])
+            dl_szxcib.append( self.x_tmpl * (
+                self._tszRatio(self.fsz[f2],self.f0) * self._cibRatio(self.fcib[f1],self.f0,beta=pars['beta_cib']) +
+                self._tszRatio(self.fsz[f1],self.f0) * self._cibRatio(self.fcib[f2],self.f0,beta=pars['beta_cib'])
                 )
             )
 
         if self.mode == "TT":
-            return -1. * pars["xi"] * np.array(dl_szxcib)
+            return -1. * pars["xi"] * np.sqrt(pars["Acib"]*pars["Atsz"]) * np.array(dl_szxcib)
         else:
             return 0.
