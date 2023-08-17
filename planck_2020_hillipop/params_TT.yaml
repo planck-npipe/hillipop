@@ -1,51 +1,21 @@
   #Point Sources
   Aps_100x100:
     value : 0.
-#    prior:
-#      min: 100
-#      max: 400
-#    ref: 312.
-#    proposal: 23.
     latex: A^\mathrm{PS}(100x100)
   Aps_100x143:
     value : 0.
-#    prior:
-#      min: 0
-#      max: 300
-#    ref: 176.
-#    proposal: 16.
     latex: A^\mathrm{PS}(100x143)
   Aps_100x217:
     value : 0.
-#    prior:
-#      min: 0
-#      max: 300
-#    ref: 143.
-#    proposal: 28.
     latex: A^\mathrm{PS}(100x217)
   Aps_143x143:
     value : 0.
-#    prior:
-#      min: 0
-#      max: 300
-#    ref: 100.
-#    proposal: 14.
     latex: A^\mathrm{PS}(143x143)
   Aps_143x217:
     value : 0.
-#    prior:
-#      min: 0
-#      max: 300
-#    ref: 82.
-#    proposal: 19.
     latex: A^\mathrm{PS}(143x217)
   Aps_217x217:
     value : 0.
-#    prior:
-#      min: 0
-#      max: 300
-#    ref: 135.
-#    proposal: 11.
     latex: A^\mathrm{PS}(217x217)
 
   #Point Sources models
@@ -56,9 +26,9 @@
     ref: 60.
     proposal: 1.
     latex: A_\mathrm{radio}^\mathrm{PS}
-  beta_s:
-    value: -0.5
-    latex: \beta_\mathrm{syn}^\mathrm{PS}
+  beta_radio:
+    value: -0.8
+    latex: \beta_\mathrm{radio}^\mathrm{PS}
   Adusty:
     prior:
       min: 0.
@@ -67,24 +37,13 @@
     proposal: 1.
     latex: A_\mathrm{IR}^\mathrm{PS}
   beta_dusty:
-    prior:
-      dist: norm
-      loc: 1.75
-      scale: 0.06
-    ref: 1.75
-    proposal: 0.05
+    value: "lambda beta_cib: beta_cib"
     latex: \beta_\mathrm{IR}^\mathrm{PS}
 
   #Dust model
-  Adust:
+  AdustT:
     value: 1.0
-#    prior:
-#      dist: norm
-#      loc: 1.0
-#      scale: 0.1
-#    ref: 1.0
-#    proposal: 0.02
-    latex: A_\mathrm{dust}
+    latex: A_\mathrm{dustT}
   beta_dustT:
     prior:
       min: 1.
@@ -94,39 +53,20 @@
     latex: \beta_\mathrm{dustT}
 
   #Dust
-  Ad100:
-    value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.1
-#    ref: 0.02
-#    proposal: 0.02
-    latex: A_\mathrm{dust}^\mathrm{100}
-  Ad143:
-    value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.1
-#    ref: 0.04
-#    proposal: 0.02
-    latex: A_\mathrm{dust}^\mathrm{143}
-  Ad217:
-    value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.2
-#    ref: 0.13
-#    proposal: 0.05
-    latex: A_\mathrm{dust}^\mathrm{217}
   Ad100T:
-    value: "lambda Ad100: Ad100"
+    value: 0.
     latex: A_\mathrm{dust}^\mathrm{100T}
   Ad143T:
-    value: "lambda Ad143: Ad143"
+    value: 0.
     latex: A_\mathrm{dust}^\mathrm{143T}
   Ad217T:
-    value: "lambda Ad217: Ad217"
+    value: 0.
     latex: A_\mathrm{dust}^\mathrm{217T}
+
+  #Sync
+  AsyncT:
+    value: 0.
+    latex: A_\mathrm{syncT}
 
   #Cosmic Infrared Background
   Acib:
@@ -165,9 +105,29 @@
   xi:
     prior:
       min: -1.
-      max: 5.
+      max: 1.
     ref: 0.1
     proposal: 0.1
     latex: \xi_\mathrm{SZxCIB}
 
 
+
+  #subpixels
+  Asbpx_100x100:
+    value: 0.
+    latex: A^\mathrm{sbpx}(100x100)
+  Asbpx_100x143:
+    value: 0.
+    latex: A^\mathrm{sbpx}(100x143)
+  Asbpx_100x217:
+    value: 0.
+    latex: A^\mathrm{sbpx}(100x217)
+  Asbpx_143x143:
+    value: 0.
+    latex: A^\mathrm{sbpx}(143x143)
+  Asbpx_143x217:
+    value: 0.
+    latex: A^\mathrm{sbpx}(143x217)
+  Asbpx_217x217:
+    value: 0.
+    latex: A^\mathrm{sbpx}(217x217)

@@ -1,37 +1,18 @@
-  Ad100:
+  #Dust
+  Ad100P:
     value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.1
-#    ref: 0.02
-#    proposal: 0.02
-    latex: A_\mathrm{dust}^\mathrm{100}
-  Ad143:
+    latex: A_\mathrm{dust}^\mathrm{100P}
+  Ad143P:
     value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.1
-#    ref: 0.04
-#    proposal: 0.02
-    latex: A_\mathrm{dust}^\mathrm{143}
-  Ad217:
+    latex: A_\mathrm{dust}^\mathrm{143P}
+  Ad217P:
     value: 0.
-#    prior:
-#      min: 0.0
-#      max: 0.2
-#    ref: 0.13
-#    proposal: 0.05
-    latex: A_\mathrm{dust}^\mathrm{217}
+    latex: A_\mathrm{dust}^\mathrm{217P}
 
-  Adust:
+  #Dust model
+  AdustP:
     value: 1.0
-#    prior:
-#      dist: norm
-#      loc: 1.0
-#      scale: 0.1
-#    ref: 1.0
-#    proposal: 0.02
-    latex: A_\mathrm{dust}
+    latex: A_\mathrm{dustP}
   beta_dustP:
     prior:
       min: 1.
@@ -40,12 +21,7 @@
     proposal: 0.05
     latex: \beta_\mathrm{dustP}
 
-  Ad100P:
-    value: "lambda Ad100: Ad100"
-    latex: A_\mathrm{dust}^\mathrm{100P}
-  Ad143P:
-    value: "lambda Ad143: Ad143"
-    latex: A_\mathrm{dust}^\mathrm{143P}
-  Ad217P:
-    value: "lambda Ad217: Ad217"
-    latex: A_\mathrm{dust}^\mathrm{217P}
+  #Sync
+  AsyncP:
+    value: 0.
+    latex: A_\mathrm{syncP}
