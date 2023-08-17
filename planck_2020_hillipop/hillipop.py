@@ -20,9 +20,11 @@ from . import tools
 
 # list of available foreground models
 fg_list = {
+    "sbpx": fg.subpix,
     "ps": fg.ps,
     "dust": fg.dust,
     "dust_model": fg.dust_model,
+    "sync": fg.sync_model,
     "ksz": fg.ksz_model,
     "ps_radio": fg.ps_radio,
     "ps_dusty": fg.ps_dusty,
@@ -298,11 +300,11 @@ class _HillipopLikelihood(InstallableLikelihood):
             if mode == "TT":
                 cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]
             elif mode == "EE":
-                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pol{m1}"], pars[f"cal{m2}"]*pars[f"pol{m2}"]
+                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pe{m1}"], pars[f"cal{m2}"]*pars[f"pe{m2}"]
             elif mode == "TE":
-                cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]*pars[f"pol{m2}"]
+                cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]*pars[f"pe{m2}"]
             elif mode == "ET":
-                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pol{m1}"], pars[f"cal{m2}"]
+                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pe{m1}"], pars[f"cal{m2}"]
             cal.append(pars["A_planck"] ** 2 * cal1 * cal2)
         
         # Data
