@@ -18,44 +18,37 @@ cosmo_params = {
 
 calib_params = {
     "A_planck": 1.0,
-    "cal100A": 0.0,
-    "cal100B": 0.0,
-    "cal143A": 0.0,
-    "cal143B": 0.0,
-    "cal217A": 0.0,
-    "cal217B": 0.0,
+    "cal100A": 1.0,
+    "cal100B": 1.0,
+    "cal143A": 1.0,
+    "cal143B": 1.0,
+    "cal217A": 1.0,
+    "cal217B": 1.0,
 }
 
 nuisance_params = {
     "TT": {
-        "Aradio": 0.0,
-        "Adusty": 0.0,
-        "Ad100T": 0.016,
-        "Ad143T": 0.035,
-        "Ad217T": 0.130,
+        "Aradio": 60.0,
+        "Adusty": 6.0,
+        "AdustT": 1.0,
+        "beta_dustT": 1.51,
         "Acib": 1.0,
-        "Asz": 1.0,
-        "Aksz": 1.0,
-        "Aszxcib": 1.0,
-        "Aps_100x100": 283.,
-        "Aps_100x143": 128.,
-        "Aps_100x217": 90.,
-        "Aps_143x143": 49.5,
-        "Aps_143x217": 34.5,
-        "Aps_217x217": 72.,
+        "Atsz": 5.0,
+        "Aksz": 0.1,
+        "xi": 0.0,
+        "beta_cib": 1.78,
+        "beta_dusty": 1.78,
+        "beta_radio": -0.8,
         },
     "EE": {
-        "Ad100P": 0.016,
-        "Ad143P": 0.035,
-        "Ad217P": 0.130,
+        "AdustP": 1.0,
+        "beta_dustP": 1.59,
         },
     "TE": {
-        "Ad100T": 0.02,
-        "Ad143T": 0.04,
-        "Ad217T": 0.13,
-        "Ad100P": 0.016,
-        "Ad143P": 0.035,
-        "Ad217P": 0.130,
+        "AdustT": 1.0,
+        "beta_dustT": 1.51,
+        "AdustP": 1.0,
+        "beta_dustP": 1.59,
         },
 }
 nuisance_params["TTTE"] = {
@@ -66,13 +59,9 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["TTTE"],
     **nuisance_params["EE"],
 }
-nuisance_equiv = {
-    "Ad100": 0.016,
-    "Ad143": 0.035,
-    "Ad217": 0.130,
-    }
+nuisance_equiv = {p: 1.0 for p in ["pe100A","pe100B","pe143A","pe143B","pe217A","pe217B"]}
 
-chi2s = {"TT": 11415.58, "EE": 9244.86, "TE": 9916.65}
+chi2s = {"TT": 11799.45, "EE": 9497.83, "TE": 10104.03}
 
 
 class HillipopTest(unittest.TestCase):
