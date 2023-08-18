@@ -1,5 +1,5 @@
   TT:
-    dust_model: foregrounds/DUST_Planck_PR4_model_XXL
+    dust_model: foregrounds/DUST_Planck_PR4_model_v4.2
     tsz: foregrounds/SZ_Planck_PR4_model.txt
     ksz: foregrounds/kSZ_Planck_PR4_model.txt
     cib: foregrounds/CIB_Planck_PR4_model.txt
@@ -7,6 +7,6 @@
     ps_radio: null
     ps_dusty: null
   EE:
-    dust_model: foregrounds/DUST_Planck_PR4_model_XXL
+    dust_model: foregrounds/DUST_Planck_PR4_model_v4.2
   TE:
-    dust_model: foregrounds/DUST_Planck_PR4_model_XXL
+    dust_model: foregrounds/DUST_Planck_PR4_model_v4.2
