@@ -305,7 +305,7 @@ class _HillipopLikelihood(InstallableLikelihood):
                 cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]*pars[f"pe{m2}"]
             elif mode == "ET":
                 cal1, cal2 = pars[f"cal{m1}"]*pars[f"pe{m1}"], pars[f"cal{m2}"]
-            cal.append(pars["A_planck"] ** 2 * cal1 * cal2)
+            cal.append(cal1 * cal2 / pars["A_planck"] ** 2)
         
         # Data
         dldata = self._dldata[mode]
