@@ -1,13 +1,3 @@
-  #Dust
-  Ad100P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{100P}
-  Ad143P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{143P}
-  Ad217P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{217P}
 
   #Dust model
   AdustP:

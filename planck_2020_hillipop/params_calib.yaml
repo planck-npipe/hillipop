@@ -14,12 +14,14 @@
     prior:
       min: 0.9
       max: 1.1
+    ref: 1.0
     proposal: 0.005
     latex: c_\mathrm{100A}
   cal100B:
     prior:
       min: 0.9
       max: 1.1
+    ref: 1.0
     proposal: 0.005
     latex: c_\mathrm{100B}
   cal143A:
@@ -29,18 +31,21 @@
     prior:
       min: 0.9
       max: 1.1
+    ref: 1.0
     proposal: 0.005
     latex: c_\mathrm{143B}
   cal217A:
     prior:
       min: 0.9
       max: 1.1
+    ref: 1.0
     proposal: 0.005
     latex: c_\mathrm{217A}
   cal217B:
     prior:
       min: 0.9
       max: 1.1
+    ref: 1.0
     proposal: 0.005
     latex: c_\mathrm{217B}
 

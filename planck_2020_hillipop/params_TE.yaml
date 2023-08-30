@@ -31,22 +31,3 @@
     ref: 1.59
     proposal: 0.01
     latex: \beta_\mathrm{dustP}
-
-  Ad100T:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{100T}
-  Ad143T:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{143T}
-  Ad217T:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{217T}
-  Ad100P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{100P}
-  Ad143P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{143P}
-  Ad217P:
-    value: 0.
-    latex: A_\mathrm{dust}^\mathrm{217P}
