@@ -22,7 +22,7 @@
     prior:
       dist: norm
       loc: 1.59
-      scale: 0.01
+      scale: 0.02
     ref: 1.59
     proposal: 0.01
     latex: \beta_\mathrm{dustP}
