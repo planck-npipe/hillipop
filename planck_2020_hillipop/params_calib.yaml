@@ -12,39 +12,60 @@
     renames: calPlanck
   cal100A:
     prior:
-      dist: norm
-      loc: 0.0
-      scale: 0.005
-    proposal: 0.002
-    latex: cal_\mathrm{100A}
+      min: 0.9
+      max: 1.1
+    ref: 1.0
+    proposal: 0.005
+    latex: c_\mathrm{100A}
   cal100B:
     prior:
-      dist: norm
-      loc: 0.0
-      scale: 0.005
-    proposal: 0.002
-    latex: cal_\mathrm{100B}
+      min: 0.9
+      max: 1.1
+    ref: 1.0
+    proposal: 0.005
+    latex: c_\mathrm{100B}
   cal143A:
-    value: 0.0
-    latex: cal_\mathrm{143A}
+    value: 1.0
+    latex: c_\mathrm{143A}
   cal143B:
     prior:
-      dist: norm
-      loc: 0.0
-      scale: 0.005
-    proposal: 0.002
-    latex: cal_\mathrm{143B}
+      min: 0.9
+      max: 1.1
+    ref: 1.0
+    proposal: 0.005
+    latex: c_\mathrm{143B}
   cal217A:
     prior:
-      dist: norm
-      loc: 0.0
-      scale: 0.005
-    proposal: 0.002
-    latex: cal_\mathrm{217A}
+      min: 0.9
+      max: 1.1
+    ref: 1.0
+    proposal: 0.005
+    latex: c_\mathrm{217A}
   cal217B:
     prior:
-      dist: norm
-      loc: 0.0
-      scale: 0.005
-    proposal: 0.002
-    latex: cal_\mathrm{217B}
+      min: 0.9
+      max: 1.1
+    ref: 1.0
+    proposal: 0.005
+    latex: c_\mathrm{217B}
+
+  #Polar efficiency
+  pe100A:
+    value: 1.
+    latex: \eta_\mathrm{100A}
+  pe100B:
+    value: 1.
+    latex: \eta_\mathrm{100B}
+  pe143A:
+    value: 1.
+    latex: \eta_\mathrm{143A}
+  pe143B:
+    value: 1.
+    latex: \eta_\mathrm{143B}
+  pe217A:
+    value: 0.975
+    latex: \eta_\mathrm{217A}
+  pe217B:
+    value: 0.975
+    latex: \eta_\mathrm{217B}
+  

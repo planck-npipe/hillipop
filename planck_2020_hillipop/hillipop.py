@@ -20,8 +20,11 @@ from . import tools
 
 # list of available foreground models
 fg_list = {
+    "sbpx": fg.subpix,
     "ps": fg.ps,
-    "dust": fg.dust_model,
+    "dust": fg.dust,
+    "dust_model": fg.dust_model,
+    "sync": fg.sync_model,
     "ksz": fg.ksz_model,
     "ps_radio": fg.ps_radio,
     "ps_dusty": fg.ps_dusty,
@@ -78,23 +81,24 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Get likelihood name and add the associated mode
         likelihood_name = self.__class__.__name__
         likelihood_modes = [likelihood_name[i : i + 2] for i in range(0, len(likelihood_name), 2)]
-        self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE"]}
+        self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE", "BB"]}
         self._is_mode["ET"] = self._is_mode["TE"]
         self.log.debug(f"mode = {self._is_mode}")
 
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
-        self.lmax = np.max([max(l) for l in self._lmaxs])
+        self.lmax = np.max([max(l) for l in self._lmaxs.values()])
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
-        self._dldata = self._read_dl_xspectra(basename, field=1)
+        self._dldata = self._read_dl_xspectra(basename)
 
         # Weights
-        dlsig = self._read_dl_xspectra(basename, field=2)
-        dlsig[dlsig == 0] = np.inf
-        self._dlweight = 1.0 / dlsig**2
+        dlsig = self._read_dl_xspectra(basename, hdu=2)
+        for m,w8 in dlsig.items(): w8[w8==0] = np.inf
+        self._dlweight = {k:1/v**2 for k,v in dlsig.items()}
+#        self._dlweight = np.ones(np.shape(self._dldata))
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
@@ -107,9 +111,10 @@ class _HillipopLikelihood(InstallableLikelihood):
                 f"Check the given path [{self.covariance_matrix_file}]",
             )
         self._invkll = self._read_invcovmatrix(filename)
+        self._invkll = self._invkll.astype('float32')
 
         # Foregrounds
-        self.fgs = []  # list of foregrounds per mode [TT,EE,TE,ET]
+        self.fgs = {}  # list of foregrounds per mode [TT,EE,TE,ET]
         # Init foregrounds TT
         fgsTT = []
         if self._is_mode["TT"]:
@@ -119,11 +124,13 @@ class _HillipopLikelihood(InstallableLikelihood):
                 self.log.debug(f"Adding '{name}' foreground for TT")
                 kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode="TT")
                 if isinstance(self.foregrounds["TT"][name], str):
-                    kwargs["filename"] = os.path.join(
-                        self.data_folder, self.foregrounds["TT"][name]
-                    )
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TT"][name])
+                elif name == "szxcib":
+                    filename_tsz = self.foregrounds["TT"]["tsz"] and os.path.join(self.data_folder, self.foregrounds["TT"]["tsz"])
+                    filename_cib = self.foregrounds["TT"]["cib"] and os.path.join(self.data_folder, self.foregrounds["TT"]["cib"])
+                    kwargs["filenames"] = (filename_tsz,filename_cib)
                 fgsTT.append(fg_list[name](**kwargs))
-        self.fgs.append(fgsTT)
+        self.fgs['TT'] = fgsTT
 
         # Init foregrounds EE
         fgsEE = []
@@ -132,11 +139,11 @@ class _HillipopLikelihood(InstallableLikelihood):
                 if name not in fg_list.keys():
                     raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
                 self.log.debug(f"Adding '{name}' foreground for EE")
-                filename = os.path.join(self.data_folder, self.foregrounds["EE"].get(name))
-                fgsEE.append(
-                    fg_list[name](self.lmax, self.frequencies, mode="EE", filename=filename)
-                )
-        self.fgs.append(fgsEE)
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
+                if isinstance(self.foregrounds["EE"][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["EE"][name])
+                fgsEE.append(fg_list[name](mode="EE", **kwargs))
+        self.fgs['EE'] = fgsEE
 
         # Init foregrounds TE
         fgsTE = []
@@ -146,12 +153,13 @@ class _HillipopLikelihood(InstallableLikelihood):
                 if name not in fg_list.keys():
                     raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
                 self.log.debug(f"Adding '{name}' foreground for TE")
-                filename = os.path.join(self.data_folder, self.foregrounds["TE"].get(name))
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, filename=filename)
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
+                if isinstance(self.foregrounds["TE"][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TE"][name])
                 fgsTE.append(fg_list[name](mode="TE", **kwargs))
                 fgsET.append(fg_list[name](mode="ET", **kwargs))
-        self.fgs.append(fgsTE)
-        self.fgs.append(fgsET)
+        self.fgs['TE'] = fgsTE
+        self.fgs['ET'] = fgsET
 
         self.log.info("Initialized!")
 
@@ -180,45 +188,48 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError(f"File missing {filename}")
 
-        lmins = []
-        lmaxs = []
-        for hdu in [0, 1, 3, 3]:  # file HDU [TT,EE,BB,TE]
-            tags = ["TT", "EE", "BB", "TE", "TB", "EB"]
-            data = fits.getdata(filename, hdu + 1)
-            lmins.append(np.array(data.field(0), int))
-            lmaxs.append(np.array(data.field(1), int))
-            if self._is_mode[tags[hdu]]:
-                self.log.debug(f"{tags[hdu]}")
-                self.log.debug(f"lmin: {np.array(data.field(0), int)}")
-                self.log.debug(f"lmax: {np.array(data.field(1), int)}")
+        tags = ["TT", "EE", "BB", "TE"] 
+        lmins = {}
+        lmaxs = {}
+        with fits.open( filename) as hdus:
+            for hdu in hdus[1:]:
+                tag = hdu.header['spec']
+                lmins[tag] = hdu.data.LMIN
+                lmaxs[tag] = hdu.data.LMAX
+                if self._is_mode[tag]:
+                    self.log.debug(f"{tag}")
+                    self.log.debug(f"lmin: {lmins[tag]}")
+                    self.log.debug(f"lmax: {lmaxs[tag]}")
+        lmins["ET"] = lmins["TE"]
+        lmaxs["ET"] = lmaxs["TE"]
 
         return lmins, lmaxs
 
-    def _read_dl_xspectra(self, basename, field=1):
+    def _read_dl_xspectra(self, basename, hdu=1):
         """
         Read xspectra from Xpol [Dl in K^2]
-        Output: Dl in muK^2
+        Output: Dl (TT,EE,TE,ET) in muK^2
         """
-        self.log.debug("Reading cross-spectra {}".format("errors" if field == 2 else ""))
+        self.log.debug("Reading cross-spectra")
+        
+        with fits.open(f"{basename}_{self._mapnames[0]}x{self._mapnames[1]}.fits") as hdus:
+            nhdu = len( hdus)
+        if nhdu < hdu:
+            #no sig in file, uniform weight
+            self.log.info( "Warning: uniform weighting for combining spectra !")
+            dldata = np.ones( (self._nxspec, 4, self.lmax+1))
+        else:
+            if nhdu == 1: hdu=0 #compatibility
+            dldata = []
+            for m1, m2 in combinations(self._mapnames, 2):
+                data = fits.getdata( f"{basename}_{m1}x{m2}.fits", hdu)*1e12
+                tmpcl = list(data[[0,1,3],:self.lmax+1])
+                data = fits.getdata( f"{basename}_{m2}x{m1}.fits", hdu)*1e12
+                tmpcl.append( data[3,:self.lmax+1])
+                dldata.append( tmpcl)
 
-        dldata = []
-        for m1, m2 in combinations(range(self._nmap), 2):
-            tmpcl = []
-            for mode, hdu in {"TT": 1, "EE": 2, "TE": 4, "ET": 4}.items():
-                filename = f"{basename}_{m1}_{m2}.fits"
-                if mode == "ET":
-                    filename = f"{basename}_{m2}_{m1}.fits"
-                if not os.path.exists(filename):
-                    raise ValueError(f"File missing {filename}")
-                data = fits.getdata(filename, hdu)
-                ell = np.array(data.field(0), int)
-                datacl = np.zeros(np.max(ell) + 1)
-                datacl[ell] = data.field(field) * 1e12
-                tmpcl.append(datacl[: self.lmax + 1])
-
-            dldata.append(tmpcl)
-
-        return np.transpose(np.array(dldata), (1, 0, 2))
+        dldata = np.transpose(np.array(dldata), (1, 0, 2))
+        return dict(zip(['TT','EE','TE','ET'],dldata))
 
     def _read_invcovmatrix(self, filename):
         """
@@ -229,7 +240,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError(f"File missing {filename}")
 
-        #        data = fits.getdata(filename).field(0)
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
@@ -248,14 +258,14 @@ class _HillipopLikelihood(InstallableLikelihood):
         nell = 0
 
         # TT,EE,TEET
-        for im, m in enumerate(["TT", "EE", "TE"]):
+        for m in ["TT", "EE", "TE"]:
             if self._is_mode[m]:
-                nells = self._lmaxs[im] - self._lmins[im] + 1
+                nells = self._lmaxs[m] - self._lmins[m] + 1
                 nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
 
         return nell
 
-    def _select_spectra(self, cl, mode=0):
+    def _select_spectra(self, cl, mode):
         """
         Cut spectra given Multipole Ranges and flatten
         Return: list
@@ -284,29 +294,56 @@ class _HillipopLikelihood(InstallableLikelihood):
         else:
             return xcl, xw8
 
-    def _compute_residuals(self, pars, dlth, mode=0):
+    def _compute_residuals(self, pars, dlth, mode):
         # Nuisances
         cal = []
-        for m1, m2 in combinations(range(self._nmap), 2):
-            cal.append(
-                pars["A_planck"] ** 2
-                * (1.0 + pars[f"cal{self._mapnames[m1]}"] + pars[f"cal{self._mapnames[m2]}"])
-            )
-
+        for m1, m2 in combinations(self._mapnames, 2):
+            if mode == "TT":
+                cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]
+            elif mode == "EE":
+                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pe{m1}"], pars[f"cal{m2}"]*pars[f"pe{m2}"]
+            elif mode == "TE":
+                cal1, cal2 = pars[f"cal{m1}"], pars[f"cal{m2}"]*pars[f"pe{m2}"]
+            elif mode == "ET":
+                cal1, cal2 = pars[f"cal{m1}"]*pars[f"pe{m1}"], pars[f"cal{m2}"]
+            cal.append(cal1 * cal2 / pars["A_planck"] ** 2)
+        
         # Data
         dldata = self._dldata[mode]
-
+        
         # Model
         dlmodel = [dlth[mode]] * self._nxspec
         for fg in self.fgs[mode]:
             dlmodel += fg.compute_dl(pars)
-
+        
         # Compute Rl = Dl - Dlth
         Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self._nxspec)])
 
         return Rspec
 
-    def compute_chi2(self, dl, **params_values):
+    def dof( self):
+        return len( self._invkll)
+
+    def reduction_matrix(self, mode):
+        """
+        Reduction matrix
+
+        each column is equal to 1 in the 15 elements corresponding to a cross-power spectrum
+        measurement in that multipole and zero elsewhere
+
+        """
+        X = np.zeros( (len(self.delta_cl),self.lmax+1) )
+        x0 = 0
+        for xf in range(self._nxfreq):
+            lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
+            lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
+            for il,l in enumerate(range(lmin,lmax+1)):
+                X[x0+il,l] = 1
+            x0 += (lmax-lmin+1)
+        
+        return X
+
+    def compute_chi2(self, dlth, **params_values):
         """
         Compute likelihood from model out of Boltzmann code
         Units: Dl in muK^2
@@ -325,48 +362,49 @@ class _HillipopLikelihood(InstallableLikelihood):
         """
 
         # cl_boltz from Boltzmann (Cl in muK^2)
-        lth = np.arange(self.lmax + 1)
-        dlth = np.asarray(dl)[:, lth][[0, 1, 3, 3]]  # select TT,EE,TE,TE
+#        lth = np.arange(self.lmax + 1)
+#        dlth = np.asarray(dl)[:, lth][[0, 1, 3, 3]]  # select TT,EE,TE,TE
 
         # Create Data Vector
         Xl = []
         if self._is_mode["TT"]:
             # compute residuals Rl = Dl - Dlth
-            Rspec = self._compute_residuals(params_values, dlth, mode=0)
+            Rspec = self._compute_residuals(params_values, dlth, "TT")
             # average to cross-spectra
-            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight[0])
+            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight["TT"])
             # select multipole range
-            Xl += self._select_spectra(Rl, mode=0)
+            Xl += self._select_spectra(Rl, 'TT')
 
         if self._is_mode["EE"]:
             # compute residuals Rl = Dl - Dlth
-            Rspec = self._compute_residuals(params_values, dlth, mode=1)
+            Rspec = self._compute_residuals(params_values, dlth, "EE")
             # average to cross-spectra
-            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight[1])
+            Rl = self._xspectra_to_xfreq(Rspec, self._dlweight["EE"])
             # select multipole range
-            Xl += self._select_spectra(Rl, mode=1)
+            Xl += self._select_spectra(Rl, 'EE')
 
         if self._is_mode["TE"] or self._is_mode["ET"]:
             Rl = 0
             Wl = 0
             # compute residuals Rl = Dl - Dlth
             if self._is_mode["TE"]:
-                Rspec = self._compute_residuals(params_values, dlth, mode=2)
-                RlTE, WlTE = self._xspectra_to_xfreq(Rspec, self._dlweight[2], normed=False)
+                Rspec = self._compute_residuals(params_values, dlth, "TE")
+                RlTE, WlTE = self._xspectra_to_xfreq(Rspec, self._dlweight["TE"], normed=False)
                 Rl = Rl + RlTE
                 Wl = Wl + WlTE
             if self._is_mode["ET"]:
-                Rspec = self._compute_residuals(params_values, dlth, mode=3)
-                RlET, WlET = self._xspectra_to_xfreq(Rspec, self._dlweight[3], normed=False)
+                Rspec = self._compute_residuals(params_values, dlth, "ET")
+                RlET, WlET = self._xspectra_to_xfreq(Rspec, self._dlweight["ET"], normed=False)
                 Rl = Rl + RlET
                 Wl = Wl + WlET
             # select multipole range
-            Xl += self._select_spectra(Rl / Wl, mode=2)
+            Xl += self._select_spectra(Rl / Wl, 'TE')
 
-        Xl = np.array(Xl)
-        chi2 = Xl @ self._invkll @ Xl
+        self.delta_cl = np.asarray(Xl).astype('float32')
+#        chi2 = self.delta_cl @ self._invkll @ self.delta_cl
+        chi2 = self._invkll.dot(self.delta_cl).dot(self.delta_cl)
 
-        self.log.debug(f"chi2/ndof = {chi2}/{len(Xl)}")
+        self.log.debug(f"chi2/ndof = {chi2}/{len(self.delta_cl)}")
         return chi2
 
     def get_requirements(self):
@@ -394,11 +432,13 @@ class _HillipopLikelihood(InstallableLikelihood):
             Log likelihood for the given parameters -2ln(L)
         """
         # cl_boltz from Boltzmann (Cl in muK^2)
-        lth = np.arange(self.lmax + 1)
-        dlth = np.zeros((4, self.lmax + 1))
-        dlth[0] = dl["tt"][lth]
-        dlth[1] = dl["ee"][lth]
-        dlth[3] = dl["te"][lth]
+#        lth = np.arange(self.lmax + 1)
+#        dlth = np.zeros((4, self.lmax + 1))
+#        dlth["TT"] = dl["tt"][lth]
+#        dlth["EE"] = dl["ee"][lth]
+#        dlth["TE"] = dl["te"][lth]
+        dlth = {k.upper():dl[k][:self.lmax+1] for k in dl.keys()}
+        dlth['ET'] = dlth['TE']
 
         chi2 = self.compute_chi2(dlth, **params_values)
 
@@ -438,7 +478,7 @@ class TTTEEE(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.1.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.2.tar.gz")
 
 
 class TTTE(_HillipopLikelihood):
@@ -448,7 +488,7 @@ class TTTE(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TTTE_v4.1.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TTTE_v4.2.tar.gz")
 
 
 class TT(_HillipopLikelihood):
@@ -458,7 +498,7 @@ class TT(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TT_v4.1.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TT_v4.2.tar.gz")
 
 
 class EE(_HillipopLikelihood):
@@ -468,7 +508,7 @@ class EE(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_EE_v4.1.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_EE_v4.2.tar.gz")
 
 
 class TE(_HillipopLikelihood):
@@ -478,4 +518,4 @@ class TE(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TE_v4.1.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TE_v4.2.tar.gz")

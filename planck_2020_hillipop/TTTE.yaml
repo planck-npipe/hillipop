@@ -1,8 +1,0 @@
-data_folder: planck_2020/hillipop
-multipoles_range_file: data/binning_ext.fits
-xspectra_basename: data/cross_NPIPE_detset
-covariance_matrix_file: data/invfll_NPIPE_detset_ext_TTTE.fits
-
-foregrounds: !defaults [foregrounds]
-
-params: !defaults [params_calib, params_TT, params_TE]
