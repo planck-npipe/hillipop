@@ -81,7 +81,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Get likelihood name and add the associated mode
         likelihood_name = self.__class__.__name__
         likelihood_modes = [likelihood_name[i : i + 2] for i in range(0, len(likelihood_name), 2)]
-        self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE"]}
+        self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE", "BB"]}
         self._is_mode["ET"] = self._is_mode["TE"]
         self.log.debug(f"mode = {self._is_mode}")
 
@@ -191,15 +191,15 @@ class _HillipopLikelihood(InstallableLikelihood):
         tags = ["TT", "EE", "BB", "TE"] 
         lmins = {}
         lmaxs = {}
-        for tag in ["TT","EE","TE"]:
-            hdu = tags.index(tag)
-            data = fits.getdata(filename, hdu + 1) # file HDU [TT,EE,BB,TE]
-            lmins[tag] = np.array(data.field(0), int)
-            lmaxs[tag] = np.array(data.field(1), int)
-            if self._is_mode[tag]:
-                self.log.debug(f"{tag}")
-                self.log.debug(f"lmin: {np.array(data.field(0), int)}")
-                self.log.debug(f"lmax: {np.array(data.field(1), int)}")
+        with fits.open( filename) as hdus:
+            for hdu in hdus[1:]:
+                tag = hdu.header['spec']
+                lmins[tag] = hdu.data.LMIN
+                lmaxs[tag] = hdu.data.LMAX
+                if self._is_mode[tag]:
+                    self.log.debug(f"{tag}")
+                    self.log.debug(f"lmin: {lmins[tag]}")
+                    self.log.debug(f"lmax: {lmaxs[tag]}")
         lmins["ET"] = lmins["TE"]
         lmaxs["ET"] = lmaxs["TE"]
 
@@ -212,7 +212,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         """
         self.log.debug("Reading cross-spectra")
         
-        nhdu = len( fits.open(f"{basename}_{self._mapnames[0]}x{self._mapnames[1]}.fits"))
+        with fits.open(f"{basename}_{self._mapnames[0]}x{self._mapnames[1]}.fits") as hdus:
+            nhdu = len( hdus)
         if nhdu < hdu:
             #no sig in file, uniform weight
             self.log.info( "Warning: uniform weighting for combining spectra !")
