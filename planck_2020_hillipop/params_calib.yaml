@@ -14,15 +14,15 @@
     prior:
       dist: norm
       loc: 0.0
-      scale: 0.002
-    proposal: 0.001
+      scale: 0.005
+    proposal: 0.002
     latex: cal_\mathrm{100A}
   cal100B:
     prior:
       dist: norm
       loc: 0.0
-      scale: 0.002
-    proposal: 0.001
+      scale: 0.005
+    proposal: 0.002
     latex: cal_\mathrm{100B}
   cal143A:
     value: 0.0
@@ -31,20 +31,20 @@
     prior:
       dist: norm
       loc: 0.0
-      scale: 0.002
-    proposal: 0.001
+      scale: 0.005
+    proposal: 0.002
     latex: cal_\mathrm{143B}
   cal217A:
     prior:
       dist: norm
       loc: 0.0
-      scale: 0.002
-    proposal: 0.001
+      scale: 0.005
+    proposal: 0.002
     latex: cal_\mathrm{217A}
   cal217B:
     prior:
       dist: norm
       loc: 0.0
-      scale: 0.002
-    proposal: 0.001
+      scale: 0.005
+    proposal: 0.002
     latex: cal_\mathrm{217B}
