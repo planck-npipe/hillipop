@@ -41,7 +41,7 @@ Likelihood versions
 -------------------
 
 <!-- * Planck 2018 (PR3) -->
-* Planck 2020 (PR4)
+* Planck 2020 (v4.1.0, PR4)
 
 Install
 -------
