@@ -27,5 +27,5 @@ setup(
     packages=find_packages(),
     python_requires=">=3.5",
     install_requires=["astropy", "cobaya>=3.0"],
-    package_data={"planck_2020_hillipop": ["Hillipop.yaml", "Hillipop.bibtex"]},
+    package_data={"planck_2020_hillipop": ["*.yaml", "*.bibtex"]},
 )
