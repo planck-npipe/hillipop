@@ -411,7 +411,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         return dict(Cl={mode: self.lmax for mode in ["tt", "ee", "te"]})
 
     def logp(self, **params_values):
-        dl = self.theory.get_Cl(ell_factor=True)
+        dl = self.provider.get_Cl(ell_factor=True)
         return self.loglike(dl, **params_values)
 
     def loglike(self, dl, **params_values):
@@ -472,7 +472,7 @@ def _get_install_options(filename):
 
 
 class TTTEEE(_HillipopLikelihood):
-    """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
+    """High-L TT+TE+EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
     split-frequency maps
 
@@ -481,18 +481,8 @@ class TTTEEE(_HillipopLikelihood):
     install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.2.tar.gz")
 
 
-class TTTE(_HillipopLikelihood):
-    """High-L TT+TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
-    with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
-    split-frequency maps
-
-    """
-
-    install_options = _get_install_options("planck_2020_hillipop_TTTE_v4.2.tar.gz")
-
-
 class TT(_HillipopLikelihood):
-    """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    """High-L TT Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
@@ -502,7 +492,7 @@ class TT(_HillipopLikelihood):
 
 
 class EE(_HillipopLikelihood):
-    """High-L EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    """High-L EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
@@ -512,7 +502,7 @@ class EE(_HillipopLikelihood):
 
 
 class TE(_HillipopLikelihood):
-    """High-L TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    """High-L TE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
