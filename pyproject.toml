@@ -16,6 +16,7 @@ classifiers = [
   "Natural Language :: English",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
 ]
 requires-python = ">=3.8.0"
 dependencies = ["astropy", "cobaya>=3.4"]
