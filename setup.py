@@ -1,30 +1,5 @@
-from setuptools import find_packages, setup
+# Minimal file for backwards compatibility. Config is kept in pyproject.toml
 
-import versioneer
+from setuptools import setup
 
-with open("README.md") as f:
-    long_description = f.read()
-
-setup(
-    name="planck_2020_hillipop",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    description="A cobaya high-ell likelihood polarized for planck",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    author="Matthieu Tristram",
-    url="https://github.com/planck-npipe/hillipop",
-    license="GNU license",
-    classifiers=[
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-    ],
-    packages=find_packages(),
-    python_requires=">=3.5",
-    install_requires=["astropy", "cobaya>=3.4"],
-    package_data={"planck_2020_hillipop": ["*.yaml", "*.bibtex"]},
-)
+setup()

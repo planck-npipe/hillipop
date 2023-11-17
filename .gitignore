@@ -1,2 +1,3 @@
 *__pycache__/
 /*.egg-info/
+/planck_2020_hillipop/_version.py
