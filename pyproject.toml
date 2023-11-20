@@ -19,7 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
 ]
 requires-python = ">=3.8.0"
-dependencies = ["astropy", "cobaya>=3.4"]
+dependencies = ["astropy", "cobaya>=3.2.2"]
 
 [tool.setuptools_scm]
 version_file = "planck_2020_hillipop/_version.py"
