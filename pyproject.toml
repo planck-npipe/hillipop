@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planck_2020_hillipop"
+dynamic = ["version"]
+authors = [{ name = "Matthieu Tristram" }]
+
+description = "A cobaya high-ell likelihood polarized for planck"
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Natural Language :: English",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+]
+requires-python = ">=3.8.0"
+dependencies = ["astropy", "cobaya>=3.4"]
+
+[tool.setuptools_scm]
+version_file = "planck_2020_hillipop/_version.py"
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.bibtex"]
+
+[tool.setuptools.packages.find]
+exclude = ["docs", "tests"]
+
+[project.urls]
+Homepage = "https://github.com/planck-npipe/hillipop"
+Documentation = "https://github.com/planck-npipe/hillipop"
+Source = "https://github.com/planck-npipe/hillipop"
+Tracker = "https://github.com/planck-npipe/hillipop/issues"
+Licensing = "https://github.com/planck-npipe/hillipop/blob/master/LICENCE"
