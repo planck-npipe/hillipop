@@ -157,6 +157,7 @@ class Bins(object):
         self.lmins = self.lmins[sel]
         self.lmaxs = self.lmaxs[sel]
         self._derive_ext()
+        return self
 
     def _bin_operators(self, Dl=False, cov=False):
         if Dl:

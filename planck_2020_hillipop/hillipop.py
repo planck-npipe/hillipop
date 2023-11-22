@@ -8,6 +8,7 @@ import os
 import re
 from itertools import combinations
 from typing import Optional
+from copy import deepcopy
 
 import astropy.io.fits as fits
 import numpy as np
@@ -32,6 +33,11 @@ fg_list = {
     "tsz": fg.tsz_model,
     "szxcib": fg.szxcib_model,
 }
+
+#bintab for hillipop_light
+light_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
+light_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
+
 
 
 # ------------------------------------------------------------------------------------------------
@@ -90,6 +96,13 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
         self.lmax = np.max([max(l) for l in self._lmaxs.values()])
 
+        #Bin version
+        self.light = True if 'light' in likelihood_name else False
+        if self.light:
+            self.wf = tools.Bins( light_lmins, light_lmaxs)
+        else:
+            self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
+
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
         self._dldata = self._read_dl_xspectra(basename)
@@ -98,7 +111,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         dlsig = self._read_dl_xspectra(basename, hdu=2)
         for m,w8 in dlsig.items(): w8[w8==0] = np.inf
         self._dlweight = {k:1/v**2 for k,v in dlsig.items()}
-#        self._dlweight = np.ones(np.shape(self._dldata))
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
@@ -275,7 +287,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         for xf in range(self._nxfreq):
             lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
             lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
-            xl += list(acl[xf, lmin : lmax + 1])
+            mywf = self.wf.cut_binning( lmin, lmax)
+            xl += list(mywf.bin_spectra(acl[xf]))
         return xl
 
     def _xspectra_to_xfreq(self, cl, weight, normed=True):
@@ -472,7 +485,7 @@ def _get_install_options(filename):
 
 
 class TTTEEE(_HillipopLikelihood):
-    """High-L TT+TE+EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood
+    """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
     split-frequency maps
 
@@ -481,8 +494,18 @@ class TTTEEE(_HillipopLikelihood):
     install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.2.tar.gz")
 
 
+class TTTE(_HillipopLikelihood):
+    """High-L TT+TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
+    with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
+    split-frequency maps
+
+    """
+
+    install_options = _get_install_options("planck_2020_hillipop_TTTE_v4.2.tar.gz")
+
+
 class TT(_HillipopLikelihood):
-    """High-L TT Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
@@ -492,7 +515,7 @@ class TT(_HillipopLikelihood):
 
 
 class EE(_HillipopLikelihood):
-    """High-L EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
@@ -502,7 +525,7 @@ class EE(_HillipopLikelihood):
 
 
 class TE(_HillipopLikelihood):
-    """High-L TE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
 
