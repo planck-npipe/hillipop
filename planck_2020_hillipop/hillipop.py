@@ -91,17 +91,17 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._is_mode["ET"] = self._is_mode["TE"]
         self.log.debug(f"mode = {self._is_mode}")
 
-        #Bin version
+        # Multipole ranges
+        filename = os.path.join(self.data_folder, self.multipoles_range_file)
+        self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
+        self.lmax = np.max([max(l) for l in self._lmaxs.values()])
+
+        #Bin strategy
         self.lite = True if 'lite' in self.__class__.__name__ else False
         if self.lite:
             self.wf = tools.Bins( lite_lmins, lite_lmaxs)
         else:
             self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
-
-        # Multipole ranges
-        filename = os.path.join(self.data_folder, self.multipoles_range_file)
-        self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
-        self.lmax = np.max([max(l) for l in self._lmaxs.values()])
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
