@@ -34,9 +34,9 @@ fg_list = {
     "szxcib": fg.szxcib_model,
 }
 
-#bintab for hillipop_light
-light_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
-light_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
+#bintab for Hillipop lite
+lite_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
+lite_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
 
 
 
@@ -52,7 +52,6 @@ class _HillipopLikelihood(InstallableLikelihood):
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
     foregrounds: Optional[list]
-    light: Optional[bool]=False
 
     def initialize(self):
         # Set path to data
@@ -86,24 +85,23 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.log.debug(f"frequencies = {self.frequencies}")
 
         # Get likelihood name and add the associated mode
-        likelihood_name = self.__class__.__name__
-        likelihood_modes = [likelihood_name[i : i + 2] for i in range(0, len(likelihood_name), 2)]
+        lkl_name = self.__class__.__name__.replace("_lite","")
+        likelihood_modes = [lkl_name[i : i + 2] for i in range(0, len(lkl_name), 2)]
         self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE", "BB"]}
         self._is_mode["ET"] = self._is_mode["TE"]
         self.log.debug(f"mode = {self._is_mode}")
+
+        #Bin version
+        self.lite = True if 'lite' in self.__class__.__name__ else False
+        if self.lite:
+            self.wf = tools.Bins( lite_lmins, lite_lmaxs)
+        else:
+            self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
 
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
         self.lmax = np.max([max(l) for l in self._lmaxs.values()])
-
-        #Bin version
-#        self.light = True if 'light' in likelihood_name else False
-        if self.light:
-            self.log.info( "*********** LIGHT **********")
-            self.wf = tools.Bins( light_lmins, light_lmaxs)
-        else:
-            self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
@@ -116,14 +114,6 @@ class _HillipopLikelihood(InstallableLikelihood):
 
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
-        # Sanity check
-        m = re.search(".*_(.+?).fits", self.covariance_matrix_file)
-        if not m or likelihood_name != m.group(1):
-            raise LoggedError(
-                self.log,
-                "The covariance matrix mode differs from the likelihood mode. "
-                f"Check the given path [{self.covariance_matrix_file}]",
-            )
         self._invkll = self._read_invcovmatrix(filename)
         self._invkll = self._invkll.astype('float32')
 
@@ -224,7 +214,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         Read xspectra from Xpol [Dl in K^2]
         Output: Dl (TT,EE,TE,ET) in muK^2
         """
-        self.log.debug("Reading cross-spectra")
+        self.log.debug("Reading cross-spectra %s" % ("weights" if hdu==2 else ""))
         
         with fits.open(f"{basename}_{self._mapnames[0]}x{self._mapnames[1]}.fits") as hdus:
             nhdu = len( hdus)
@@ -503,15 +493,6 @@ class TTTEEE(_HillipopLikelihood):
     install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.2.tar.gz")
 
 
-class TTTE(_HillipopLikelihood):
-    """High-L TT+TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
-    with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
-    split-frequency maps
-
-    """
-
-    install_options = _get_install_options("planck_2020_hillipop_TTTE_v4.2.tar.gz")
-
 
 class TT(_HillipopLikelihood):
     """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
@@ -541,3 +522,25 @@ class TE(_HillipopLikelihood):
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TE_v4.2.tar.gz")
+
+
+
+class TT_lite(_HillipopLikelihood):
+    """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
+    maps
+    Binned version
+
+    """
+
+    install_options = _get_install_options("planck_2020_hillipop_TT_lite_v4.2.tar.gz")
+
+class TTTEEE_lite(_HillipopLikelihood):
+    """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
+    with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
+    split-frequency maps
+    Binned version
+
+    """
+
+    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_lite_v4.2.tar.gz")
