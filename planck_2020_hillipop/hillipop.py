@@ -52,6 +52,7 @@ class _HillipopLikelihood(InstallableLikelihood):
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
     foregrounds: Optional[list]
+    light: Optional[bool]=False
 
     def initialize(self):
         # Set path to data
@@ -97,8 +98,9 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.lmax = np.max([max(l) for l in self._lmaxs.values()])
 
         #Bin version
-        self.light = True if 'light' in likelihood_name else False
+#        self.light = True if 'light' in likelihood_name else False
         if self.light:
+            self.log.info( "*********** LIGHT **********")
             self.wf = tools.Bins( light_lmins, light_lmaxs)
         else:
             self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
@@ -272,8 +274,14 @@ class _HillipopLikelihood(InstallableLikelihood):
         # TT,EE,TEET
         for m in ["TT", "EE", "TE"]:
             if self._is_mode[m]:
-                nells = self._lmaxs[m] - self._lmins[m] + 1
-                nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
+#                nells = self._lmaxs[m] - self._lmins[m] + 1
+#                nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
+                for xf in range(self._nxfreq):
+                    lmin = self._lmins[m][self._xspec2xfreq.index(xf)]
+                    lmax = self._lmaxs[m][self._xspec2xfreq.index(xf)]
+                    mywf = deepcopy( self.wf)
+                    mywf.cut_binning( lmin, lmax)
+                    nell += mywf.nbins
 
         return nell
 
@@ -287,7 +295,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         for xf in range(self._nxfreq):
             lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
             lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
-            mywf = self.wf.cut_binning( lmin, lmax)
+            mywf = deepcopy( self.wf)
+            mywf.cut_binning( lmin, lmax)
             xl += list(mywf.bin_spectra(acl[xf]))
         return xl
 
