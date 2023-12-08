@@ -39,17 +39,17 @@ nuisance_params = {
         "beta_cib": 1.78,
         "beta_dusty": 1.78,
         "beta_radio": -0.8,
-        },
+    },
     "EE": {
         "AdustP": 1.0,
         "beta_dustP": 1.59,
-        },
+    },
     "TE": {
         "AdustT": 1.0,
         "beta_dustT": 1.51,
         "AdustP": 1.0,
         "beta_dustP": 1.59,
-        },
+    },
 }
 nuisance_params["TTTE"] = {
     **nuisance_params["TT"],
@@ -59,9 +59,9 @@ nuisance_params["TTTEEE"] = {
     **nuisance_params["TTTE"],
     **nuisance_params["EE"],
 }
-nuisance_equiv = {p: 1.0 for p in ["pe100A","pe100B","pe143A","pe143B","pe217A","pe217B"]}
+nuisance_equiv = {p: 1.0 for p in ["pe100A", "pe100B", "pe143A", "pe143B", "pe217A", "pe217B"]}
 
-chi2s = {"TT": 11799.45, "EE": 9497.83, "TE": 10104.03}
+chi2s = {"TT": 11799.45, "EE": 9497.83, "TE": 10104.03, "TT_lite": 2636.29, "TTTEEE_lite": 6421.71}
 
 
 class HillipopTest(unittest.TestCase):
@@ -70,7 +70,7 @@ class HillipopTest(unittest.TestCase):
 
         for mode in chi2s.keys():
             install(
-                {"likelihood": {"planck_2020_hillipop.{}".format(mode): None}},
+                {"likelihood": {f"planck_2020_hillipop.{mode}": None}},
                 path=packages_path,
                 skip_global=True,
             )
@@ -89,8 +89,11 @@ class HillipopTest(unittest.TestCase):
         for mode, chi2 in chi2s.items():
             _hlp = getattr(planck_2020_hillipop, mode)
             my_lik = _hlp({"packages_path": packages_path})
-            loglike = my_lik.loglike(cl_dict, **{**calib_params, **nuisance_params[mode], **nuisance_equiv})
-            self.assertLess( abs(-2 * loglike - chi2), 1)
+            loglike = my_lik.loglike(
+                cl_dict,
+                **{**calib_params, **nuisance_params[mode.replace("_lite", "")], **nuisance_equiv},
+            )
+            self.assertLess(abs(-2 * loglike - chi2), 1)
 
     def test_cobaya(self):
         for mode, chi2 in chi2s.items():
@@ -98,10 +101,15 @@ class HillipopTest(unittest.TestCase):
                 "debug": True,
                 "likelihood": {"planck_2020_hillipop.{}".format(mode): None},
                 "theory": {"camb": {"extra_args": {"lens_potential_accuracy": 1}}},
-                "params": {**cosmo_params, **calib_params, **nuisance_params[mode], **nuisance_equiv},
+                "params": {
+                    **cosmo_params,
+                    **calib_params,
+                    **nuisance_params[mode.replace("_lite", "")],
+                    **nuisance_equiv,
+                },
                 "packages_path": packages_path,
             }
             from cobaya.model import get_model
 
             model = get_model(info)
-            self.assertLess( abs(-2 * model.loglikes({})[0][0] - chi2), 1)
+            self.assertLess(abs(-2 * model.loglikes({})[0][0] - chi2), 1)
