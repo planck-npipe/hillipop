@@ -1,0 +1,8 @@
+data_folder: planck_2020/hillipop
+multipoles_range_file: data/binning_v4.2.fits
+xspectra_basename: data/dl_PR4_v4.2
+covariance_matrix_file: data/invfll_PR4_v4.2_TT_lite.fits
+
+foregrounds: !defaults [foregrounds]
+
+params: !defaults [params_calib, params_TT]
