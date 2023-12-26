@@ -37,11 +37,22 @@ Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, ``h
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
+References
+----------
+When used, please cite the following article:
+```
+Cosmological parameters derived from the final Planck data release (PR4)
+M. Tristram, A.J. Banday, M. Douspis, X. Garrido, K.M. Górski, S. Henrot-Versillé, L.T. Hergt, S. Ilić, R. Keskitalo, G. Lagache, C.R. Lawrence, B. Partridge, D. Scott
+A&A, (2023)
+DOI: [10.1051/0004-6361/202348015](https://doi.org/10.1051/0004-6361/202348015)
+```
+
 Likelihood versions
 -------------------
 
 <!-- * Planck 2018 (PR3) -->
 * Planck 2020 (v4.1.0, PR4)
+* Planck 2020 (v4.2.2, PR4)
 
 Install
 -------
