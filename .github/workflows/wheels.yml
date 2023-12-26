@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.X'
@@ -20,7 +20,7 @@ jobs:
           python -m pip install build
           python -m build
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: dist/*
           retention-days: 1
@@ -33,7 +33,7 @@ jobs:
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: artifact
           path: dist
