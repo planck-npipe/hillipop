@@ -417,6 +417,11 @@ class _HillipopLikelihood(InstallableLikelihood):
         chi2 = self._invkll.dot(self.delta_cl).dot(self.delta_cl)
 
         self.log.debug(f"chi2/ndof = {chi2}/{len(self.delta_cl)}")
+
+        #protect against cast float32
+        alpha = 8. - np.ceil(np.log10(chi2))
+        chi2 = np.float64(np.round(chi2*10**alpha))*10**(-alpha)
+        
         return chi2
 
     def get_requirements(self):
