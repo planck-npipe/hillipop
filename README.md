@@ -29,11 +29,10 @@ residuals. These are:
 
 HiLLiPoP has been used as an alternative to the public Planck likelihood in the 2013 and 2015 Planck
 releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Planck Collaboration XI
-2016](https://arxiv.org/abs/1507.02704)], and is described in detail in [Couchot et
-al. (2017)](https://arxiv.org/abs/1609.09730).
+2016](https://arxiv.org/abs/1507.02704)]. Its last version v4.2, based on Planck PR4, is described 
+in detail in [Tristram et al. (2023)](https://arxiv.org/abs/2309.10034).
 
-Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, ``hillipop.TTTE``, and
-``hillipop.TTTEEE``.
+Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, and ``hillipop.TTTEEE``.
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
@@ -44,7 +43,7 @@ When used, please cite the following article:
 Cosmological parameters derived from the final Planck data release (PR4)
 M. Tristram, A.J. Banday, M. Douspis, X. Garrido, K.M. Górski, S. Henrot-Versillé, L.T. Hergt, S. Ilić, R. Keskitalo, G. Lagache, C.R. Lawrence, B. Partridge, D. Scott
 A&A, (2023)
-DOI: [10.1051/0004-6361/202348015](https://doi.org/10.1051/0004-6361/202348015)
+DOI: https://doi.org/10.1051/0004-6361/202348015
 ```
 
 Likelihood versions
