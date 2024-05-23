@@ -94,6 +94,10 @@ Data and code such as [CAMB](https://github.com/cmbant/CAMB) will be downloaded 
 the ``/where/to/put/packages`` directory. For more details, you can have a look to `cobaya`
 [documentation](https://cobaya.readthedocs.io/en/latest/installation_cosmo.html).
 
+Chains
+------
+We provide [here](https://portal.nersc.gov/cfs/cmb/planck2020/chains) results from MCMC exploration chains, as well as yaml files used for Cobaya runs and covariance matrices corresponding to the results presented in [M. Tristram, et al. A&A (2023)](https://doi.org/10.1051/0004-6361/202348015). 
+ 
 Requirements
 ------------
 * Python >= 3.5
