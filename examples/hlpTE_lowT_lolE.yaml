@@ -61,7 +61,7 @@ theory:
 
 sampler:
   mcmc:
-    covmat: /sps/planck/Users/tristram/Planck/Planck2020/V4.2/software/hillipop/examples/LCDM_hlpTTTEEE_camb.cov
+    covmat: hlpTE_lowT_lolE.covmat
 
 output: chains/mcmc
 
