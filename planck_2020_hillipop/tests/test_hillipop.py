@@ -61,7 +61,7 @@ nuisance_params["TTTEEE"] = {
 }
 nuisance_equiv = {p: 1.0 for p in ["pe100A", "pe100B", "pe143A", "pe143B", "pe217A", "pe217B"]}
 
-chi2s = {"TT": 11799.45, "EE": 9497.83, "TE": 10104.03, "TT_lite": 2636.29, "TTTEEE_lite": 6421.71}
+chi2s = {"TT": 11799.45, "EE": 9497.83, "TE": 10104.03, "TT_bin": 2636.29, "TTTEEE_bin": 6421.71}
 
 
 class HillipopTest(unittest.TestCase):
@@ -91,7 +91,7 @@ class HillipopTest(unittest.TestCase):
             my_lik = _hlp({"packages_path": packages_path})
             loglike = my_lik.loglike(
                 cl_dict,
-                **{**calib_params, **nuisance_params[mode.replace("_lite", "")], **nuisance_equiv},
+                **{**calib_params, **nuisance_params[mode.replace("_bin", "")], **nuisance_equiv},
             )
             self.assertLess(abs(-2 * loglike - chi2), 1)
 
@@ -104,7 +104,7 @@ class HillipopTest(unittest.TestCase):
                 "params": {
                     **cosmo_params,
                     **calib_params,
-                    **nuisance_params[mode.replace("_lite", "")],
+                    **nuisance_params[mode.replace("_bin", "")],
                     **nuisance_equiv,
                 },
                 "packages_path": packages_path,
