@@ -34,9 +34,9 @@ fg_list = {
     "szxcib": fg.szxcib_model,
 }
 
-#bintab for Hillipop lite
-lite_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
-lite_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
+#bintab for Hillipop bin
+bin_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
+bin_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
 
 
 
@@ -85,7 +85,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.log.debug(f"frequencies = {self.frequencies}")
 
         # Get likelihood name and add the associated mode
-        lkl_name = self.__class__.__name__.replace("_lite","")
+        lkl_name = self.__class__.__name__.replace("_bin","")
         likelihood_modes = [lkl_name[i : i + 2] for i in range(0, len(lkl_name), 2)]
         self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE", "BB"]}
         self._is_mode["ET"] = self._is_mode["TE"]
@@ -97,9 +97,8 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.lmax = np.max([max(l) for l in self._lmaxs.values()])
 
         #Bin strategy
-        self.lite = True if 'lite' in self.__class__.__name__ else False
-        if self.lite:
-            self.wf = tools.Bins( lite_lmins, lite_lmaxs)
+        if 'bin' in self.__class__.__name__:
+            self.wf = tools.Bins( bin_lmins, bin_lmaxs)
         else:
             self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
 
@@ -530,7 +529,7 @@ class TE(_HillipopLikelihood):
 
 
 
-class TT_lite(_HillipopLikelihood):
+class TT_bin(_HillipopLikelihood):
     """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
     maps
@@ -538,9 +537,9 @@ class TT_lite(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TT_lite_v4.2.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TT_bin_v4.2.tar.gz")
 
-class TTTEEE_lite(_HillipopLikelihood):
+class TTTEEE_bin(_HillipopLikelihood):
     """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
     split-frequency maps
@@ -548,4 +547,4 @@ class TTTEEE_lite(_HillipopLikelihood):
 
     """
 
-    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_lite_v4.2.tar.gz")
+    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_bin_v4.2.tar.gz")
