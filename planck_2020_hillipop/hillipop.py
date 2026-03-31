@@ -19,20 +19,6 @@ from cobaya.log import LoggedError
 from . import foregrounds as fg
 from . import tools
 
-# list of available foreground models
-fg_list = {
-    "sbpx": fg.subpix,
-    "ps": fg.ps,
-    "dust": fg.dust,
-    "dust_model": fg.dust_model,
-    "sync": fg.sync_model,
-    "ksz": fg.ksz_model,
-    "ps_radio": fg.ps_radio,
-    "ps_dusty": fg.ps_dusty,
-    "cib": fg.cib_model,
-    "tsz": fg.tsz_model,
-    "szxcib": fg.szxcib_model,
-}
 
 #bintab for Hillipop bin
 bin_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
@@ -52,6 +38,9 @@ class _HillipopLikelihood(InstallableLikelihood):
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
     foregrounds: Optional[list]
+
+    lmin: Optional[int] = 30
+    lmax: Optional[int] = 2500
 
     def initialize(self):
         # Set path to data
@@ -94,13 +83,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
-        self.lmax = np.max([max(l) for l in self._lmaxs.values()])
-
-        #Bin strategy
-        if 'bin' in self.__class__.__name__:
-            self.wf = tools.Bins( bin_lmins, bin_lmaxs)
-        else:
-            self.wf = tools.Bins.fromdeltal( 2, self.lmax+1, 1)
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
@@ -111,59 +93,62 @@ class _HillipopLikelihood(InstallableLikelihood):
         for m,w8 in dlsig.items(): w8[w8==0] = np.inf
         self._dlweight = {k:1/v**2 for k,v in dlsig.items()}
 
+        #Bin strategy
+        if 'bin' in self.__class__.__name__:
+            self.bmins,self.bmaxs = bin_lmins, bin_lmaxs
+        else:
+            self.bmins = self.bmaxs = np.arange(2,2500+1)
+        self.wf = tools.Bins( self.bmins, self.bmaxs)
+
         # Inverted Covariance matrix
         filename = os.path.join(self.data_folder, self.covariance_matrix_file)
         self._invkll = self._read_invcovmatrix(filename)
+
+        #Cut lmin,lmax
+        if self.lmin < 30:
+            raise LoggedError( self.log, "lmin should be >= 30 (lmax=[%d])", lmin)
+        if self.lmax > 2500:
+            raise LoggedError( self.log, "lmax should be <= 2500 (lmax=[%d])", lmax)
+        if 'bin' in self.__class__.__name__:
+            if self.lmin != 30 or self.lmax != 2500:
+                self._cut_covmatrix( self.lmin, self.lmax)
+                self.wf.cut_binning( self.lmin, self.lmax)
+        else:
+            if self.lmin != 30 or self.lmax != 2500:
+                raise LoggedError( self.log, "Unbinned likelihood is from l=30 to 2500.")
+#                self._cut_covmatrix( self.lmin, self.lmax)
+#                self.wf.cut_binning( self.lmin, self.lmax)
         self._invkll = self._invkll.astype('float32')
 
+        for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
+            logstr = f"{m1}x{m2}: "
+            for mode in ['TT','EE','TE']:
+                if self._is_mode[mode]:
+                    xflmin = self._lmins[mode][xs]
+                    xflmax = self._lmaxs[mode][xs]
+                    mywf = deepcopy( self.wf)
+                    mywf.cut_binning( xflmin, xflmax)
+                    logstr += f"{mode}[{mywf.lmin:4d}-{mywf.lmax:4d}]  "
+            self.log.info(logstr)
+
         # Foregrounds
-        self.fgs = {}  # list of foregrounds per mode [TT,EE,TE,ET]
-        # Init foregrounds TT
-        fgsTT = []
-        if self._is_mode["TT"]:
-            for name in self.foregrounds["TT"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for TT")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode="TT")
-                if isinstance(self.foregrounds["TT"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TT"][name])
+        self.fgs = {tag:[] for tag,v in self._is_mode.items() if v}  # list of foregrounds per mode [TT,EE,TE,ET]
+        if 'TE' in self.foregrounds: self.foregrounds['ET'] = self.foregrounds['TE']
+        for tag,fgs in self.fgs.items():
+            for name in self.foregrounds[tag].keys():
+                if not hasattr( fg, name):
+                    raise LoggedError(self.log, "Unkown foreground model '%s'!", name)
+
+                self.log.debug("Adding '{}' foreground for {}".format(name,tag))
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode=tag)
+                
+                if isinstance(self.foregrounds[tag][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds[tag][name])
                 elif name == "szxcib":
-                    filename_tsz = self.foregrounds["TT"]["tsz"] and os.path.join(self.data_folder, self.foregrounds["TT"]["tsz"])
-                    filename_cib = self.foregrounds["TT"]["cib"] and os.path.join(self.data_folder, self.foregrounds["TT"]["cib"])
-                    kwargs["filenames"] = (filename_tsz,filename_cib)
-                fgsTT.append(fg_list[name](**kwargs))
-        self.fgs['TT'] = fgsTT
-
-        # Init foregrounds EE
-        fgsEE = []
-        if self._is_mode["EE"]:
-            for name in self.foregrounds["EE"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for EE")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
-                if isinstance(self.foregrounds["EE"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["EE"][name])
-                fgsEE.append(fg_list[name](mode="EE", **kwargs))
-        self.fgs['EE'] = fgsEE
-
-        # Init foregrounds TE
-        fgsTE = []
-        fgsET = []
-        if self._is_mode["TE"]:
-            for name in self.foregrounds["TE"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for TE")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
-                if isinstance(self.foregrounds["TE"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TE"][name])
-                fgsTE.append(fg_list[name](mode="TE", **kwargs))
-                fgsET.append(fg_list[name](mode="ET", **kwargs))
-        self.fgs['TE'] = fgsTE
-        self.fgs['ET'] = fgsET
-
+                    kwargs["filenames"] = (self.foregrounds[tag]["tsz"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["tsz"]),
+                                           self.foregrounds[tag]["cib"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["cib"]))
+                fgs.append(getattr(fg,name)(**kwargs))
+        
         self.log.info("Initialized!")
 
     def _xspec2xfreq(self):
@@ -199,10 +184,10 @@ class _HillipopLikelihood(InstallableLikelihood):
                 tag = hdu.header['spec']
                 lmins[tag] = hdu.data.LMIN
                 lmaxs[tag] = hdu.data.LMAX
-                if self._is_mode[tag]:
-                    self.log.debug(f"{tag}")
-                    self.log.debug(f"lmin: {lmins[tag]}")
-                    self.log.debug(f"lmax: {lmaxs[tag]}")
+#                if self._is_mode[tag]:
+#                    self.log.debug(f"{tag}")
+#                    for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
+#                        self.log.debug(f"{m1}x{m2} : {lmins[tag][xs]} - {lmaxs[tag][xs]}")
         lmins["ET"] = lmins["TE"]
         lmaxs["ET"] = lmaxs["TE"]
 
@@ -243,6 +228,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError(f"File missing {filename}")
 
+        print(filename)
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
@@ -252,6 +238,42 @@ class _HillipopLikelihood(InstallableLikelihood):
             raise ValueError(f"Incoherent covariance matrix (read:{nel}, expected:{nell})")
 
         return data
+
+    def _cut_covmatrix( self, lmin, lmax):
+        """
+        Apply lmin/lmax on the covariance matrix
+        """
+
+        #invert matrix
+        self.log.debug("\tInvert invkll matrix")
+        kll = np.linalg.inv( self._invkll)
+        
+        #resize with lmax
+        self.log.debug("\tApply lmin/lmax")
+        shift = 0
+        idxs = []
+        for mode in ["TT", "EE", "TE"]:
+            if self._is_mode[mode] is False: continue
+            for xf in range(self._nxfreq):
+                xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
+                xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
+
+                #original binning of the bin kll
+                mywf = deepcopy( self.wf)
+                mywf.cut_binning( xflmin, xflmax)
+
+                #apply overall lmin,lmax
+                for i in range(mywf.nbins):
+                    if mywf.lmins[i] >= lmin and mywf.lmaxs[i] <= lmax: idxs.append(shift+i)
+                shift += mywf.nbins
+#                print( f"{mode},{xf} : {len(idxs)} / {mywf.nbins} / {shift}")
+
+        kll = kll[idxs,:][:,idxs]
+
+        #invert matrix
+        self.log.debug("\tInvert kll matrix")
+        self._invkll = np.linalg.inv( kll)
+    
 
     def _get_matrix_size(self):
         """
@@ -326,7 +348,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         dlmodel = [dlth[mode]] * self._nxspec
         for fg in self.fgs[mode]:
             dlmodel += fg.compute_dl(pars)
-        
+
         # Compute Rl = Dl - Dlth
         Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self._nxspec)])
 
