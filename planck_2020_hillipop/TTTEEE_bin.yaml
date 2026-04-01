@@ -4,12 +4,9 @@ xspectra_basename: data/dl_PR4_v4.2
 covariance_matrix_file: data/invfll_PR4_v4.2_TTTEEE_bin.fits
 
 lrange:
-  TT: [100,1500]
-  TE: [100,1000]
-  EE: [100,1000]
-#  TT: [30,2500]
-#  TE: [30,2000]
-#  EE: [30,2000]
+  TT: [30,2500]
+  TE: [30,2000]
+  EE: [30,2000]
 
 foregrounds: !defaults [foregrounds]
 
