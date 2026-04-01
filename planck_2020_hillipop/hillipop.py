@@ -39,8 +39,7 @@ class _HillipopLikelihood(InstallableLikelihood):
     covariance_matrix_file: Optional[str]
     foregrounds: Optional[list]
 
-    lmin: Optional[int] = 30
-    lmax: Optional[int] = 2500
+    lrange: Optional[list]
 
     def initialize(self):
         # Set path to data
@@ -83,6 +82,16 @@ class _HillipopLikelihood(InstallableLikelihood):
         # Multipole ranges
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
+        if 'bin' in self.__class__.__name__:
+            for tag,lrange in self.lrange.items():
+                if lrange[0] < min(self._lmins[tag]):
+                    raise LoggedError( self.log, f"{tag} lmin should be >= {min(self._lmins[tag])} (lmin={lrange[0]})")
+                if lrange[1] > max(self._lmaxs[tag]):
+                    raise LoggedError( self.log, f"{tag} lmax should be <= {max(self._lmaxs[tag])} (lmax={lrange[1]})")
+        else:
+            #lrange fixed for unbinned (TT:[30-2500], EE:[30-2000], TE:[30-2000]
+            self.lrange = {tag:[min(self._lmins[tag]),max(self._lmaxs[tag])] for tag,is_tag in self._is_mode.items() if is_tag}
+        self.lmax = max([lrange[1] for lrange in self.lrange.values()])
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
@@ -105,19 +114,10 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._invkll = self._read_invcovmatrix(filename)
 
         #Cut lmin,lmax
-        if self.lmin < 30:
-            raise LoggedError( self.log, "lmin should be >= 30 (lmax=[%d])", lmin)
-        if self.lmax > 2500:
-            raise LoggedError( self.log, "lmax should be <= 2500 (lmax=[%d])", lmax)
+        #DO NOT cut l-by-l likelihood !
         if 'bin' in self.__class__.__name__:
-            if self.lmin != 30 or self.lmax != 2500:
-                self._cut_covmatrix( self.lmin, self.lmax)
-                self.wf.cut_binning( self.lmin, self.lmax)
-        else:
-            if self.lmin != 30 or self.lmax != 2500:
-                raise LoggedError( self.log, "Unbinned likelihood is from l=30 to 2500.")
-#                self._cut_covmatrix( self.lmin, self.lmax)
-#                self.wf.cut_binning( self.lmin, self.lmax)
+            self._cut_covmatrix( self.lrange)
+#            self.wf.cut_binning( self.lmin, self.lmax)
         self._invkll = self._invkll.astype('float32')
 
         for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
@@ -127,12 +127,13 @@ class _HillipopLikelihood(InstallableLikelihood):
                     xflmin = self._lmins[mode][xs]
                     xflmax = self._lmaxs[mode][xs]
                     mywf = deepcopy( self.wf)
+                    mywf.cut_binning( *self.lrange[mode])
                     mywf.cut_binning( xflmin, xflmax)
                     logstr += f"{mode}[{mywf.lmin:4d}-{mywf.lmax:4d}]  "
             self.log.info(logstr)
 
         # Foregrounds
-        self.fgs = {tag:[] for tag,v in self._is_mode.items() if v}  # list of foregrounds per mode [TT,EE,TE,ET]
+        self.fgs = {tag:[] for tag,is_tag in self._is_mode.items() if is_tag}  # list of foregrounds per mode [TT,EE,TE,ET]
         if 'TE' in self.foregrounds: self.foregrounds['ET'] = self.foregrounds['TE']
         for tag,fgs in self.fgs.items():
             for name in self.foregrounds[tag].keys():
@@ -239,9 +240,10 @@ class _HillipopLikelihood(InstallableLikelihood):
 
         return data
 
-    def _cut_covmatrix( self, lmin, lmax):
+    def _cut_covmatrix( self, lrange):
         """
         Apply lmin/lmax on the covariance matrix
+        lrange : dict( TT=(lmin,lmax), TE=(lmin,lmax), EE=(lmin,lmax)
         """
 
         #invert matrix
@@ -254,6 +256,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         idxs = []
         for mode in ["TT", "EE", "TE"]:
             if self._is_mode[mode] is False: continue
+            lmin,lmax = lrange[mode]  #define lrange for the likelihood
             for xf in range(self._nxfreq):
                 xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
                 xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
@@ -308,6 +311,7 @@ class _HillipopLikelihood(InstallableLikelihood):
             lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
             mywf = deepcopy( self.wf)
             mywf.cut_binning( lmin, lmax)
+            mywf.cut_binning( *self.lrange[mode])
             xl += list(mywf.bin_spectra(acl[xf]))
         return xl
 
