@@ -15,6 +15,7 @@ import numpy as np
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
+from cobaya.mpi import is_main_process
 
 from . import foregrounds as fg
 from . import tools
@@ -64,6 +65,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._nxfreq = self._nfreq * (self._nfreq + 1) // 2
         self._nxspec = self._nmap * (self._nmap - 1) // 2
         self._xspec2xfreq = self._xspec2xfreq()
+        self._xfreq_labels = self._xfreq_labels()
         self.log.debug(f"frequencies = {self.frequencies}")
 
         # Get likelihood name and add the associated mode
@@ -103,17 +105,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         for m,w8 in dlsig.items(): w8[w8==0] = np.inf
         self._dlweight = {k:1/v**2 for k,v in dlsig.items()}
 
-        for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
-            logstr = f"{m1}x{m2}: "
-            for mode in ['TT','EE','TE']:
-                if self._is_mode[mode]:
-                    xflmin = self._lmins[mode][xs]
-                    xflmax = self._lmaxs[mode][xs]
-                    wf = deepcopy( self.wf)
-                    wf.cut_binning( xflmin, xflmax)
-                    logstr += f"{mode}[{wf.lmin:4d}-{wf.lmax:4d}]  "
-            self.log.info(logstr)
-
         # Foregrounds
         self.fgs = {tag:[] for tag,is_tag in self._is_mode.items() if is_tag}  # list of foregrounds per mode [TT,EE,TE,ET]
         if 'TE' in self.foregrounds: self.foregrounds['ET'] = self.foregrounds['TE']
@@ -132,6 +123,18 @@ class _HillipopLikelihood(InstallableLikelihood):
                                            self.foregrounds[tag]["cib"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["cib"]))
                 fgs.append(getattr(fg,name)(**kwargs))
 
+        if is_main_process():
+            for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
+                logstr = f"{m1}x{m2}: "
+                for mode in ['TT','EE','TE']:
+                    if self._is_mode[mode]:
+                        xflmin = self._lmins[mode][xs]
+                        xflmax = self._lmaxs[mode][xs]
+                        wf = deepcopy( self.wf)
+                        wf.cut_binning( xflmin, xflmax)
+                        logstr += f"{mode}[{wf.lmin:4d}-{wf.lmax:4d}]  "
+                self.log.info(logstr)
+
         self.log.info("Initialized!")
 
     def _xspec2xfreq(self):
@@ -149,6 +152,14 @@ class _HillipopLikelihood(InstallableLikelihood):
                 spec2freq.append(list_fqs.index((f1, f2)))
 
         return spec2freq
+
+    def _xfreq_labels(self):
+        freqs = list(np.unique(self.frequencies))
+        labels = []
+        for f1 in range(self._nfreq):
+            for f2 in range(f1, self._nfreq):
+                labels.append(f"{freqs[f1]}x{freqs[f2]}")
+        return labels
 
     def _set_multipole_ranges(self, filename):
         """
@@ -227,10 +238,10 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.log.debug(f"\tSet up lmin/lmax cuts for lrange:\n{self.lrange}")
         idx_offset = 0
         kept_idxs = []
-        for mode in ["TT", "EE", "TE"]:
-            if not self._is_mode[mode]:
+        for XY in ["TT", "EE", "TE"]:
+            if not self._is_mode[XY]:
                 continue
-            l_cuts = self.lrange.get(mode)
+            l_cuts = self.lrange.get(XY)
             if l_cuts is None:
                 lmin_cut = self.lmax
                 lmax_cut = self.lmin
@@ -238,14 +249,14 @@ class _HillipopLikelihood(InstallableLikelihood):
                 lmin_cut, lmax_cut = l_cuts
 
             # validate lrange
-            if lmin_cut < min(self._lmins[mode]):
-                raise LoggedError(self.log, f"{mode} lmin should be >= {min(self._lmins[mode])} (lmin={lmin_cut} requested)")
-            if lmax_cut > max(self._lmaxs[mode]):
-                raise LoggedError(self.log, f"{mode} lmax should be <= {max(self._lmaxs[mode])} (lmax={lmax_cut} requested)")
+            if lmin_cut < min(self._lmins[XY]):
+                raise LoggedError(self.log, f"{XY} lmin should be >= {min(self._lmins[XY])} (lmin={lmin_cut} requested)")
+            if lmax_cut > max(self._lmaxs[XY]):
+                raise LoggedError(self.log, f"{XY} lmax should be <= {max(self._lmaxs[XY])} (lmax={lmax_cut} requested)")
 
             for xf in range(self._nxfreq):
-                xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
-                xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
+                xflmin = self._lmins[XY][self._xspec2xfreq.index(xf)]
+                xflmax = self._lmaxs[XY][self._xspec2xfreq.index(xf)]
 
                 wf = deepcopy(self.wf)
                 wf.cut_binning(xflmin, xflmax)
@@ -254,13 +265,27 @@ class _HillipopLikelihood(InstallableLikelihood):
                 kept_idxs.extend(idx_offset + np.flatnonzero(mask))
                 idx_offset += wf.nbins
 
-            # integrate lrange into _lmins/_lmaxs
-            self._lmins[mode] = np.maximum(self._lmins[mode], lmin_cut)
-            self._lmaxs[mode] = np.minimum(self._lmaxs[mode], lmax_cut)
+                if mask.sum() < len(mask) and is_main_process():
+                    if mask.any():
+                        self.log.info(
+                            f"Cutting {XY} {self._xfreq_labels[xf]} to [{lmin_cut}, {lmax_cut}]. "
+                            f"Keeping {mask.sum()}/{len(mask)} bins "
+                            f"(effective range [{wf.lmins[mask].min()}, {wf.lmaxs[mask].max()}])."
+                        )
+                    else:
+                        self.log.info(f"Removing {XY} {self._xfreq_labels[xf]} entirely ({len(mask)} bins cut).")
 
-        self._lmins['ET'] = self._lmins['TE']
-        self._lmaxs['ET'] = self._lmaxs['TE']
-        self.lmax = max(max(self._lmaxs[mode]) for mode in self.lrange)
+            # integrate lrange into _lmins/_lmaxs
+            X, Y = XY
+            for YX in {XY, Y+X}:
+                if l_cuts is not None:
+                    self._lmins[YX] = np.maximum(self._lmins[XY], lmin_cut)
+                    self._lmaxs[YX] = np.minimum(self._lmaxs[XY], lmax_cut)
+                else:
+                    self._is_mode[YX] = False
+                    self._lmins.pop(YX, None)
+                    self._lmaxs.pop(YX, None)
+        self.lmax = max(max(self._lmaxs[XY]) for XY in self.lrange)
 
         # early exit if nothing was cut
         if len(kept_idxs) == self._invkll.shape[0]:
