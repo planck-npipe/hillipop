@@ -223,48 +223,47 @@ class _HillipopLikelihood(InstallableLikelihood):
         Apply multipole cuts from `lrange` on the covariance matrix and lmins/lmaxs.
         """
 
-        # invert matrix
-        self.log.debug("\tInvert invkll matrix")
-        kll = np.linalg.inv( self._invkll)
-
         # resize with lmax
-        self.log.debug("\tApply lmin/lmax")
+        self.log.debug(f"\tSet up lmin/lmax cuts for lrange:\n{self.lrange}")
         shift = 0
         idxs = []
         for mode in ["TT", "EE", "TE"]:
-            if self._is_mode[mode] is False: continue
-            lmin, lmax = self.lrange[mode]  # define lrange for the likelihood
+            if not self._is_mode[mode]:
+                continue
+            lmin_cut, lmax_cut = self.lrange[mode]
+
+            # validate lrange
+            if lmin_cut < min(self._lmins[mode]):
+                raise LoggedError(self.log, f"{mode} lmin should be >= {min(self._lmins[mode])} (lmin={lmin_cut} requested)")
+            if lmax_cut > max(self._lmaxs[mode]):
+                raise LoggedError(self.log, f"{mode} lmax should be <= {max(self._lmaxs[mode])} (lmax={lmax_cut} requested)")
+
+            # build index list for covariance cutting
             for xf in range(self._nxfreq):
                 xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
                 xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
 
-                # original binning of the bin kll
-                wf = deepcopy( self.wf)
-                wf.cut_binning( xflmin, xflmax)
+                wf = deepcopy(self.wf)
+                wf.cut_binning(xflmin, xflmax)
 
-                # apply overall lmin,lmax
                 for i in range(wf.nbins):
-                    if wf.lmins[i] >= lmin and wf.lmaxs[i] <= lmax: idxs.append(shift+i)
+                    if wf.lmins[i] >= lmin_cut and wf.lmaxs[i] <= lmax_cut: idxs.append(shift+i)
                 shift += wf.nbins
 
-        kll = kll[idxs,:][:,idxs]
+            # integrate lrange into _lmins/_lmaxs
+            self._lmins[mode] = np.maximum(self._lmins[mode], lmin_cut)
+            self._lmaxs[mode] = np.minimum(self._lmaxs[mode], lmax_cut)
 
-        # invert matrix
-        self.log.debug("\tInvert kll matrix")
-        self._invkll = np.linalg.inv( kll)
-
-        # Integrate lrange into _lmins/_lmaxs
-        for mode, lrange in self.lrange.items():
-            if lrange[0] < min(self._lmins[mode]):
-                raise LoggedError(self.log, f"{mode} lmin should be >= {min(self._lmins[mode])} (lmin={lrange[0]} requested)")
-            if lrange[1] > max(self._lmaxs[mode]):
-                raise LoggedError(self.log, f"{mode} lmax should be <= {max(self._lmaxs[mode])} (lmax={lrange[1]} requested)")
-            self._lmins[mode] = np.maximum(self._lmins[mode], lrange[0])
-            self._lmaxs[mode] = np.minimum(self._lmaxs[mode], lrange[1])
         self._lmins['ET'] = self._lmins['TE']
         self._lmaxs['ET'] = self._lmaxs['TE']
         self.lmax = max(max(self._lmaxs[mode]) for mode in self.lrange)
-    
+
+        # invert matrix
+        self.log.debug("\tInvert invkll matrix")
+        kll = np.linalg.inv(self._invkll)
+        kll = kll[idxs,:][:,idxs]
+        self.log.debug("\tInvert kll matrix")
+        self._invkll = np.linalg.inv( kll)
 
     def _get_matrix_size(self):
         """
