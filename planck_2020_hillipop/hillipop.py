@@ -223,14 +223,19 @@ class _HillipopLikelihood(InstallableLikelihood):
         Apply multipole cuts from `lrange` on the covariance matrix and lmins/lmaxs.
         """
 
-        # resize with lmax
+        # build index list for covariance cutting
         self.log.debug(f"\tSet up lmin/lmax cuts for lrange:\n{self.lrange}")
-        shift = 0
-        idxs = []
+        idx_offset = 0
+        kept_idxs = []
         for mode in ["TT", "EE", "TE"]:
             if not self._is_mode[mode]:
                 continue
-            lmin_cut, lmax_cut = self.lrange[mode]
+            l_cuts = self.lrange.get(mode)
+            if l_cuts is None:
+                lmin_cut = self.lmax
+                lmax_cut = self.lmin
+            else:
+                lmin_cut, lmax_cut = l_cuts
 
             # validate lrange
             if lmin_cut < min(self._lmins[mode]):
@@ -238,7 +243,6 @@ class _HillipopLikelihood(InstallableLikelihood):
             if lmax_cut > max(self._lmaxs[mode]):
                 raise LoggedError(self.log, f"{mode} lmax should be <= {max(self._lmaxs[mode])} (lmax={lmax_cut} requested)")
 
-            # build index list for covariance cutting
             for xf in range(self._nxfreq):
                 xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
                 xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
@@ -246,9 +250,9 @@ class _HillipopLikelihood(InstallableLikelihood):
                 wf = deepcopy(self.wf)
                 wf.cut_binning(xflmin, xflmax)
 
-                for i in range(wf.nbins):
-                    if wf.lmins[i] >= lmin_cut and wf.lmaxs[i] <= lmax_cut: idxs.append(shift+i)
-                shift += wf.nbins
+                mask = (wf.lmins >= lmin_cut) & (wf.lmaxs <= lmax_cut)
+                kept_idxs.extend(idx_offset + np.flatnonzero(mask))
+                idx_offset += wf.nbins
 
             # integrate lrange into _lmins/_lmaxs
             self._lmins[mode] = np.maximum(self._lmins[mode], lmin_cut)
@@ -258,12 +262,16 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._lmaxs['ET'] = self._lmaxs['TE']
         self.lmax = max(max(self._lmaxs[mode]) for mode in self.lrange)
 
-        # invert matrix
+        # early exit if nothing was cut
+        if len(kept_idxs) == self._invkll.shape[0]:
+            return
+
+        # invert, cut, re-invert covariance matrix
         self.log.debug("\tInvert invkll matrix")
         kll = np.linalg.inv(self._invkll)
-        kll = kll[idxs,:][:,idxs]
+        kll = kll[kept_idxs,:][:,kept_idxs]
         self.log.debug("\tInvert kll matrix")
-        self._invkll = np.linalg.inv( kll)
+        self._invkll = np.linalg.inv(kll)
 
     def _get_matrix_size(self):
         """
