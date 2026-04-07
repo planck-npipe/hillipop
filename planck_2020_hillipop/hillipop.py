@@ -20,10 +20,11 @@ from . import foregrounds as fg
 from . import tools
 
 
-#bintab for Hillipop bin
-bin_lmins = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10))
-bin_lmaxs = list( np.arange(30, 251, 1))+list( np.arange(251, 2500, 10)+9)
-
+# binning for Hillipop binned likelihoods
+lower_l = np.arange(30, 251, 1)     # unbinned
+upper_l = np.arange(251, 2500, 10)  # binned
+bin_lmins = np.concatenate((lower_l, upper_l))
+bin_lmaxs = np.concatenate((lower_l, upper_l + 9))
 
 
 # ------------------------------------------------------------------------------------------------
@@ -38,9 +39,8 @@ class _HillipopLikelihood(InstallableLikelihood):
     multipoles_range_file: Optional[str]
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
-    foregrounds: Optional[list]
-
-    lrange: Optional[list]
+    foregrounds: Optional[dict]
+    lrange: Optional[dict]
 
     def initialize(self):
         # Set path to data
@@ -118,7 +118,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         #DO NOT cut l-by-l likelihood !
         if 'bin' in self.__class__.__name__:
             self._cut_covmatrix( self.lrange)
-#            self.wf.cut_binning( self.lmin, self.lmax)
+
         self._invkll = self._invkll.astype('float32')
 
         for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
@@ -127,10 +127,10 @@ class _HillipopLikelihood(InstallableLikelihood):
                 if self._is_mode[mode]:
                     xflmin = self._lmins[mode][xs]
                     xflmax = self._lmaxs[mode][xs]
-                    mywf = deepcopy( self.wf)
-                    mywf.cut_binning( *self.lrange[mode])
-                    mywf.cut_binning( xflmin, xflmax)
-                    logstr += f"{mode}[{mywf.lmin:4d}-{mywf.lmax:4d}]  "
+                    wf = deepcopy( self.wf)
+                    wf.cut_binning( *self.lrange[mode])
+                    wf.cut_binning( xflmin, xflmax)
+                    logstr += f"{mode}[{wf.lmin:4d}-{wf.lmax:4d}]  "
             self.log.info(logstr)
 
         # Foregrounds
@@ -150,7 +150,7 @@ class _HillipopLikelihood(InstallableLikelihood):
                     kwargs["filenames"] = (self.foregrounds[tag]["tsz"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["tsz"]),
                                            self.foregrounds[tag]["cib"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["cib"]))
                 fgs.append(getattr(fg,name)(**kwargs))
-        
+
         self.log.info("Initialized!")
 
     def _xspec2xfreq(self):
@@ -186,10 +186,6 @@ class _HillipopLikelihood(InstallableLikelihood):
                 tag = hdu.header['spec']
                 lmins[tag] = hdu.data.LMIN
                 lmaxs[tag] = hdu.data.LMAX
-#                if self._is_mode[tag]:
-#                    self.log.debug(f"{tag}")
-#                    for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
-#                        self.log.debug(f"{m1}x{m2} : {lmins[tag][xs]} - {lmaxs[tag][xs]}")
         lmins["ET"] = lmins["TE"]
         lmaxs["ET"] = lmaxs["TE"]
 
@@ -230,7 +226,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         if not os.path.exists(filename):
             raise ValueError(f"File missing {filename}")
 
-        print(filename)
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
@@ -247,11 +242,11 @@ class _HillipopLikelihood(InstallableLikelihood):
         lrange : dict( TT=(lmin,lmax), TE=(lmin,lmax), EE=(lmin,lmax)
         """
 
-        #invert matrix
+        # invert matrix
         self.log.debug("\tInvert invkll matrix")
         kll = np.linalg.inv( self._invkll)
         
-        #resize with lmax
+        # resize with lmax
         self.log.debug("\tApply lmin/lmax")
         shift = 0
         idxs = []
@@ -262,19 +257,18 @@ class _HillipopLikelihood(InstallableLikelihood):
                 xflmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
                 xflmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
 
-                #original binning of the bin kll
-                mywf = deepcopy( self.wf)
-                mywf.cut_binning( xflmin, xflmax)
+                # original binning of the bin kll
+                wf = deepcopy( self.wf)
+                wf.cut_binning( xflmin, xflmax)
 
-                #apply overall lmin,lmax
-                for i in range(mywf.nbins):
-                    if mywf.lmins[i] >= lmin and mywf.lmaxs[i] <= lmax: idxs.append(shift+i)
-                shift += mywf.nbins
-#                print( f"{mode},{xf} : {len(idxs)} / {mywf.nbins} / {shift}")
+                # apply overall lmin,lmax
+                for i in range(wf.nbins):
+                    if wf.lmins[i] >= lmin and wf.lmaxs[i] <= lmax: idxs.append(shift+i)
+                shift += wf.nbins
 
         kll = kll[idxs,:][:,idxs]
 
-        #invert matrix
+        # invert matrix
         self.log.debug("\tInvert kll matrix")
         self._invkll = np.linalg.inv( kll)
     
@@ -289,14 +283,12 @@ class _HillipopLikelihood(InstallableLikelihood):
         # TT,EE,TEET
         for m in ["TT", "EE", "TE"]:
             if self._is_mode[m]:
-#                nells = self._lmaxs[m] - self._lmins[m] + 1
-#                nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
                 for xf in range(self._nxfreq):
                     lmin = self._lmins[m][self._xspec2xfreq.index(xf)]
                     lmax = self._lmaxs[m][self._xspec2xfreq.index(xf)]
-                    mywf = deepcopy( self.wf)
-                    mywf.cut_binning( lmin, lmax)
-                    nell += mywf.nbins
+                    wf = deepcopy( self.wf)
+                    wf.cut_binning( lmin, lmax)
+                    nell += wf.nbins
 
         return nell
 
@@ -310,10 +302,10 @@ class _HillipopLikelihood(InstallableLikelihood):
         for xf in range(self._nxfreq):
             lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
             lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
-            mywf = deepcopy( self.wf)
-            mywf.cut_binning( lmin, lmax)
-            mywf.cut_binning( *self.lrange[mode])
-            xl += list(mywf.bin_spectra(acl[xf]))
+            wf = deepcopy( self.wf)
+            wf.cut_binning( lmin, lmax)
+            wf.cut_binning( *self.lrange[mode])
+            xl += list(wf.bin_spectra(acl[xf]))
         return xl
 
     def _xspectra_to_xfreq(self, cl, weight, normed=True):
@@ -517,18 +509,17 @@ def _get_install_options(filename):
 class TTTEEE(_HillipopLikelihood):
     """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
-    split-frequency maps
+    split-frequency maps.
 
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TTTEEE_v4.2.tar.gz")
 
 
-
 class TT(_HillipopLikelihood):
     """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
@@ -538,7 +529,7 @@ class TT(_HillipopLikelihood):
 class EE(_HillipopLikelihood):
     """High-L EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
@@ -548,30 +539,31 @@ class EE(_HillipopLikelihood):
 class TE(_HillipopLikelihood):
     """High-L TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TE_v4.2.tar.gz")
 
 
-
 class TT_bin(_HillipopLikelihood):
     """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
-    Binned version
+    maps.
+    Binned version.
 
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TT_bin_v4.2.tar.gz")
 
+
 class TTTEEE_bin(_HillipopLikelihood):
     """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
-    split-frequency maps
-    Binned version
+    split-frequency maps.
+    Binned version.
 
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TTTEEE_bin_v4.2.tar.gz")
+
