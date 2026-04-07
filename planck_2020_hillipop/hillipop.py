@@ -229,6 +229,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
+        data = 0.5 * (data + data.T)  # ensure exact symmetry
 
         nell = self._get_matrix_size()
         if nel != nell:
