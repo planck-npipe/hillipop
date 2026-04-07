@@ -34,6 +34,7 @@ data_url = "https://portal.nersc.gov/cfs/cmb/planck2020/likelihoods"
 
 
 class _HillipopLikelihood(InstallableLikelihood):
+    bibtex_file = 'hillipop.bibtex'
     multipoles_range_file: Optional[str]
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
