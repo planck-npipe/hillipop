@@ -96,6 +96,19 @@ class _HillipopLikelihood(InstallableLikelihood):
             self._cut_lrange()  # optional lrange cutting only for binned likelihood
         self._invkll = self._invkll.astype('float32')
 
+        # Precompute binning operators for _select_spectra
+        self._bin_p = {}
+        for mode in ["TT", "TE", "EE"]:
+            if not self._is_mode[mode]:
+                continue
+            for xf in range(self._nxfreq):
+                lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
+                lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
+                wf = deepcopy(self.wf)
+                wf.cut_binning(lmin, lmax)
+                p, _ = wf._bin_operators(Dl=False)
+                self._bin_p[(mode, xf)] = p
+
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
         self._dldata = self._read_dl_xspectra(basename)
@@ -325,11 +338,9 @@ class _HillipopLikelihood(InstallableLikelihood):
         acl = np.asarray(cl)
         xl = []
         for xf in range(self._nxfreq):
-            lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
-            lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
-            wf = deepcopy( self.wf)
-            wf.cut_binning( lmin, lmax)
-            xl += list(wf.bin_spectra(acl[xf]))
+            p = self._bin_p[(mode, xf)]
+            minlmax = min(acl[xf].shape[0], p.shape[1])
+            xl += list(np.dot(acl[xf, :minlmax], p.T[:minlmax]))
         return xl
 
     def _xspectra_to_xfreq(self, cl, weight, normed=True):
