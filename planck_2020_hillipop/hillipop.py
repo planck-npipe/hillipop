@@ -1,7 +1,25 @@
-#
-# HILLIPOP
-#
-# Sep 2020   - M. Tristram -
+"""
+.. module:: HiLLiPoP
+
+:Synopsis: Likelihood class for Planck PR4
+:Author: Matthieu Tristram
+
+Hillipop is a multifrequency CMB likelihood for Planck data.
+
+The likelihood is a spectrum-based Gaussian approximation for
+cross-correlation spectra from Planck 100, 143 and 217GHz
+split-frequency maps, with semi-analytic estimates of the Cl
+covariance matrix based on the data. The cross-spectra are debiased
+from the effects of the mask and the beam leakage using Xpol before
+being compared to the model, which includes CMB and foreground
+residuals. They cover the multipoles from l=30 to l=2500.
+
+:History: 
+ Sep 2020   - M. Tristram -
+ Apr 2026   - M. Tristram, L. Hergt - Implement binned version
+
+"""
+
 import glob
 import logging
 import os
@@ -19,6 +37,12 @@ from cobaya.mpi import is_main_process
 
 from . import foregrounds as fg
 from . import tools
+
+#predefined binning
+lower_l = np.arange( 30,  251,  1)  # unbinned
+upper_l = np.arange(251, 2500, 10)  # binned
+bin_lmins = np.concatenate((lower_l, upper_l))
+bin_lmaxs = np.concatenate((lower_l, upper_l + 9))
 
 
 # ------------------------------------------------------------------------------------------------
@@ -81,10 +105,6 @@ class _HillipopLikelihood(InstallableLikelihood):
         self.lmin = min(min(self._lmins[mode]) for mode, is_mode in self._is_mode.items() if is_mode)
         self.lmax = max(max(self._lmaxs[mode]) for mode, is_mode in self._is_mode.items() if is_mode)
         if 'bin' in self.__class__.__name__:
-            lower_l = np.arange(self.lmin, 251, 1)   # unbinned
-            upper_l = np.arange(251, self.lmax, 10)  # binned
-            bin_lmins = np.concatenate((lower_l, upper_l))
-            bin_lmaxs = np.concatenate((lower_l, upper_l + 9))
             self.wf = tools.Bins(bin_lmins, bin_lmaxs)
         else:
             self.wf = tools.Bins.fromdeltal(2, self.lmax+1, 1)
