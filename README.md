@@ -32,7 +32,9 @@ releases [[Planck Collaboration XV 2014](https://arxiv.org/abs/1303.5075); [Plan
 2016](https://arxiv.org/abs/1507.02704)]. Its last version v4.2, based on Planck PR4, is described 
 in detail in [Tristram et al. (2023)](https://arxiv.org/abs/2309.10034).
 
-Likelihoods available are ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, and ``hillipop.TTTEEE``.
+Likelihoods available are
+* ``hillipop.TT``, ``hillipop.EE``, ``hillipop.TE``, and ``hillipop.TTTEEE`` (&ell; by &ell;)
+* ``hillipop.TT_bin``, ``hillipop.TTTEEE_bin`` (binned version with &delta;&ell;=10 after 250)
 
 It is interfaced with the ``cobaya`` MCMC sampler.
 
