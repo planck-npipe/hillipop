@@ -1,37 +1,48 @@
-#
-# HILLIPOP
-#
-# Sep 2020   - M. Tristram -
+"""
+.. module:: HiLLiPoP
+
+:Synopsis: Likelihood class for Planck PR4
+:Author: Matthieu Tristram
+
+Hillipop is a multifrequency CMB likelihood for Planck data.
+
+The likelihood is a spectrum-based Gaussian approximation for
+cross-correlation spectra from Planck 100, 143 and 217GHz
+split-frequency maps, with semi-analytic estimates of the Cl
+covariance matrix based on the data. The cross-spectra are debiased
+from the effects of the mask and the beam leakage using Xpol before
+being compared to the model, which includes CMB and foreground
+residuals. They cover the multipoles from l=30 to l=2500.
+
+:History: 
+ Sep 2020   - M. Tristram -
+ Apr 2026   - M. Tristram, L. Hergt - Implement binned version
+
+"""
+
 import glob
 import logging
 import os
 import re
 from itertools import combinations
 from typing import Optional
+from copy import deepcopy
 
 import astropy.io.fits as fits
 import numpy as np
 from cobaya.conventions import data_path, packages_path_input
 from cobaya.likelihoods.base_classes import InstallableLikelihood
 from cobaya.log import LoggedError
+from cobaya.mpi import is_main_process
 
 from . import foregrounds as fg
 from . import tools
 
-# list of available foreground models
-fg_list = {
-    "sbpx": fg.subpix,
-    "ps": fg.ps,
-    "dust": fg.dust,
-    "dust_model": fg.dust_model,
-    "sync": fg.sync_model,
-    "ksz": fg.ksz_model,
-    "ps_radio": fg.ps_radio,
-    "ps_dusty": fg.ps_dusty,
-    "cib": fg.cib_model,
-    "tsz": fg.tsz_model,
-    "szxcib": fg.szxcib_model,
-}
+#predefined binning
+lower_l = np.arange( 30,  251,  1)  # unbinned
+upper_l = np.arange(251, 2500, 10)  # binned
+bin_lmins = np.concatenate((lower_l, upper_l))
+bin_lmaxs = np.concatenate((lower_l, upper_l + 9))
 
 
 # ------------------------------------------------------------------------------------------------
@@ -42,10 +53,12 @@ data_url = "https://portal.nersc.gov/cfs/cmb/planck2020/likelihoods"
 
 
 class _HillipopLikelihood(InstallableLikelihood):
+    bibtex_file = 'hillipop.bibtex'
     multipoles_range_file: Optional[str]
     xspectra_basename: Optional[str]
     covariance_matrix_file: Optional[str]
-    foregrounds: Optional[list]
+    foregrounds: Optional[dict]
+    lrange: Optional[dict]
 
     def initialize(self):
         # Set path to data
@@ -76,19 +89,45 @@ class _HillipopLikelihood(InstallableLikelihood):
         self._nxfreq = self._nfreq * (self._nfreq + 1) // 2
         self._nxspec = self._nmap * (self._nmap - 1) // 2
         self._xspec2xfreq = self._xspec2xfreq()
+        self._xfreq_labels = self._xfreq_labels()
         self.log.debug(f"frequencies = {self.frequencies}")
 
         # Get likelihood name and add the associated mode
-        likelihood_name = self.__class__.__name__
-        likelihood_modes = [likelihood_name[i : i + 2] for i in range(0, len(likelihood_name), 2)]
+        lkl_name = self.__class__.__name__.replace("_bin","")
+        likelihood_modes = [lkl_name[i : i + 2] for i in range(0, len(lkl_name), 2)]
         self._is_mode = {mode: mode in likelihood_modes for mode in ["TT", "TE", "EE", "BB"]}
         self._is_mode["ET"] = self._is_mode["TE"]
         self.log.debug(f"mode = {self._is_mode}")
 
-        # Multipole ranges
+        # Multipole ranges and binning
         filename = os.path.join(self.data_folder, self.multipoles_range_file)
         self._lmins, self._lmaxs = self._set_multipole_ranges(filename)
-        self.lmax = np.max([max(l) for l in self._lmaxs.values()])
+        self.lmin = min(min(self._lmins[mode]) for mode, is_mode in self._is_mode.items() if is_mode)
+        self.lmax = max(max(self._lmaxs[mode]) for mode, is_mode in self._is_mode.items() if is_mode)
+        if 'bin' in self.__class__.__name__:
+            self.wf = tools.Bins(bin_lmins, bin_lmaxs)
+        else:
+            self.wf = tools.Bins.fromdeltal(2, self.lmax+1, 1)
+
+        # Inverted Covariance matrix
+        filename = os.path.join(self.data_folder, self.covariance_matrix_file)
+        self._invkll = self._read_invcovmatrix(filename)
+        if 'bin' in self.__class__.__name__ and self.lrange:
+            self._cut_lrange()  # optional lrange cutting only for binned likelihood
+        self._invkll = self._invkll.astype('float32')
+
+        # Precompute binning operators for _select_spectra
+        self._bin_p = {}
+        for mode in ["TT", "TE", "EE"]:
+            if not self._is_mode[mode]:
+                continue
+            for xf in range(self._nxfreq):
+                lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
+                lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
+                wf = deepcopy(self.wf)
+                wf.cut_binning(lmin, lmax)
+                p, _ = wf._bin_operators(Dl=False)
+                self._bin_p[(mode, xf)] = p
 
         # Data
         basename = os.path.join(self.data_folder, self.xspectra_basename)
@@ -98,68 +137,36 @@ class _HillipopLikelihood(InstallableLikelihood):
         dlsig = self._read_dl_xspectra(basename, hdu=2)
         for m,w8 in dlsig.items(): w8[w8==0] = np.inf
         self._dlweight = {k:1/v**2 for k,v in dlsig.items()}
-#        self._dlweight = np.ones(np.shape(self._dldata))
-
-        # Inverted Covariance matrix
-        filename = os.path.join(self.data_folder, self.covariance_matrix_file)
-        # Sanity check
-        m = re.search(".*_(.+?).fits", self.covariance_matrix_file)
-        if not m or likelihood_name != m.group(1):
-            raise LoggedError(
-                self.log,
-                "The covariance matrix mode differs from the likelihood mode. "
-                f"Check the given path [{self.covariance_matrix_file}]",
-            )
-        self._invkll = self._read_invcovmatrix(filename)
-        self._invkll = self._invkll.astype('float32')
 
         # Foregrounds
-        self.fgs = {}  # list of foregrounds per mode [TT,EE,TE,ET]
-        # Init foregrounds TT
-        fgsTT = []
-        if self._is_mode["TT"]:
-            for name in self.foregrounds["TT"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for TT")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode="TT")
-                if isinstance(self.foregrounds["TT"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TT"][name])
+        self.fgs = {tag:[] for tag,is_tag in self._is_mode.items() if is_tag}  # list of foregrounds per mode [TT,EE,TE,ET]
+        if 'TE' in self.foregrounds: self.foregrounds['ET'] = self.foregrounds['TE']
+        for tag,fgs in self.fgs.items():
+            for name in self.foregrounds[tag].keys():
+                if not hasattr( fg, name):
+                    raise LoggedError(self.log, "Unkown foreground model '%s'!", name)
+
+                self.log.debug("Adding '{}' foreground for {}".format(name,tag))
+                kwargs = dict(lmax=self.lmax, freqs=self.frequencies, mode=tag)
+                
+                if isinstance(self.foregrounds[tag][name], str):
+                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds[tag][name])
                 elif name == "szxcib":
-                    filename_tsz = self.foregrounds["TT"]["tsz"] and os.path.join(self.data_folder, self.foregrounds["TT"]["tsz"])
-                    filename_cib = self.foregrounds["TT"]["cib"] and os.path.join(self.data_folder, self.foregrounds["TT"]["cib"])
-                    kwargs["filenames"] = (filename_tsz,filename_cib)
-                fgsTT.append(fg_list[name](**kwargs))
-        self.fgs['TT'] = fgsTT
+                    kwargs["filenames"] = (self.foregrounds[tag]["tsz"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["tsz"]),
+                                           self.foregrounds[tag]["cib"] and os.path.join(self.fgds_folder, self.foregrounds[tag]["cib"]))
+                fgs.append(getattr(fg,name)(**kwargs))
 
-        # Init foregrounds EE
-        fgsEE = []
-        if self._is_mode["EE"]:
-            for name in self.foregrounds["EE"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for EE")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
-                if isinstance(self.foregrounds["EE"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["EE"][name])
-                fgsEE.append(fg_list[name](mode="EE", **kwargs))
-        self.fgs['EE'] = fgsEE
-
-        # Init foregrounds TE
-        fgsTE = []
-        fgsET = []
-        if self._is_mode["TE"]:
-            for name in self.foregrounds["TE"].keys():
-                if name not in fg_list.keys():
-                    raise LoggedError(self.log, f"Unkown foreground model '{name}'!")
-                self.log.debug(f"Adding '{name}' foreground for TE")
-                kwargs = dict(lmax=self.lmax, freqs=self.frequencies)
-                if isinstance(self.foregrounds["TE"][name], str):
-                    kwargs["filename"] = os.path.join(self.data_folder, self.foregrounds["TE"][name])
-                fgsTE.append(fg_list[name](mode="TE", **kwargs))
-                fgsET.append(fg_list[name](mode="ET", **kwargs))
-        self.fgs['TE'] = fgsTE
-        self.fgs['ET'] = fgsET
+        if is_main_process():
+            for xs, (m1, m2) in enumerate(combinations(self._mapnames, 2)):
+                logstr = f"{m1}x{m2}: "
+                for mode in ['TT','EE','TE']:
+                    if self._is_mode[mode]:
+                        xflmin = self._lmins[mode][xs]
+                        xflmax = self._lmaxs[mode][xs]
+                        wf = deepcopy( self.wf)
+                        wf.cut_binning( xflmin, xflmax)
+                        logstr += f"{mode}[{wf.lmin:4d}-{wf.lmax:4d}]  "
+                self.log.info(logstr)
 
         self.log.info("Initialized!")
 
@@ -179,6 +186,14 @@ class _HillipopLikelihood(InstallableLikelihood):
 
         return spec2freq
 
+    def _xfreq_labels(self):
+        freqs = list(np.unique(self.frequencies))
+        labels = []
+        for f1 in range(self._nfreq):
+            for f2 in range(f1, self._nfreq):
+                labels.append(f"{freqs[f1]}x{freqs[f2]}")
+        return labels
+
     def _set_multipole_ranges(self, filename):
         """
         Return the (lmin,lmax) for each cross-spectra for each mode (TT, EE, TE, ET)
@@ -196,10 +211,6 @@ class _HillipopLikelihood(InstallableLikelihood):
                 tag = hdu.header['spec']
                 lmins[tag] = hdu.data.LMIN
                 lmaxs[tag] = hdu.data.LMAX
-                if self._is_mode[tag]:
-                    self.log.debug(f"{tag}")
-                    self.log.debug(f"lmin: {lmins[tag]}")
-                    self.log.debug(f"lmax: {lmaxs[tag]}")
         lmins["ET"] = lmins["TE"]
         lmaxs["ET"] = lmaxs["TE"]
 
@@ -210,7 +221,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         Read xspectra from Xpol [Dl in K^2]
         Output: Dl (TT,EE,TE,ET) in muK^2
         """
-        self.log.debug("Reading cross-spectra")
+        self.log.debug("Reading cross-spectra %s" % ("weights" if hdu==2 else ""))
         
         with fits.open(f"{basename}_{self._mapnames[0]}x{self._mapnames[1]}.fits") as hdus:
             nhdu = len( hdus)
@@ -243,12 +254,82 @@ class _HillipopLikelihood(InstallableLikelihood):
         data = fits.getdata(filename)
         nel = int(np.sqrt(data.size))
         data = data.reshape((nel, nel)) / 1e24  # muK^-4
+        data = 0.5 * (data + data.T)  # ensure exact symmetry
 
         nell = self._get_matrix_size()
         if nel != nell:
             raise ValueError(f"Incoherent covariance matrix (read:{nel}, expected:{nell})")
 
         return data
+
+    def _cut_lrange(self):
+        """
+        Apply multipole cuts from `lrange` on the covariance matrix and lmins/lmaxs.
+        """
+
+        # build index list for covariance cutting
+        self.log.debug(f"\tSet up lmin/lmax cuts for lrange:\n{self.lrange}")
+        idx_offset = 0
+        kept_idxs = []
+        for XY in ["TT", "EE", "TE"]:
+            if not self._is_mode[XY]:
+                continue
+            l_cuts = self.lrange.get(XY)
+            if l_cuts is None:
+                lmin_cut = self.lmax
+                lmax_cut = self.lmin
+            else:
+                lmin_cut, lmax_cut = l_cuts
+
+            # validate lrange
+            if lmin_cut < min(self._lmins[XY]):
+                raise LoggedError(self.log, f"{XY} lmin should be >= {min(self._lmins[XY])} (lmin={lmin_cut} requested)")
+            if lmax_cut > max(self._lmaxs[XY]):
+                raise LoggedError(self.log, f"{XY} lmax should be <= {max(self._lmaxs[XY])} (lmax={lmax_cut} requested)")
+
+            for xf in range(self._nxfreq):
+                xflmin = self._lmins[XY][self._xspec2xfreq.index(xf)]
+                xflmax = self._lmaxs[XY][self._xspec2xfreq.index(xf)]
+
+                wf = deepcopy(self.wf)
+                wf.cut_binning(xflmin, xflmax)
+
+                mask = (wf.lmins >= lmin_cut) & (wf.lmaxs <= lmax_cut)
+                kept_idxs.extend(idx_offset + np.flatnonzero(mask))
+                idx_offset += wf.nbins
+
+                if mask.sum() < len(mask) and is_main_process():
+                    if mask.any():
+                        self.log.info(
+                            f"Cutting {XY} {self._xfreq_labels[xf]} to [{lmin_cut}, {lmax_cut}]. "
+                            f"Keeping {mask.sum()}/{len(mask)} bins "
+                            f"(effective range [{wf.lmins[mask].min()}, {wf.lmaxs[mask].max()}])."
+                        )
+                    else:
+                        self.log.info(f"Removing {XY} {self._xfreq_labels[xf]} entirely ({len(mask)} bins cut).")
+
+            # integrate lrange into _lmins/_lmaxs
+            X, Y = XY
+            for YX in {XY, Y+X}:
+                if l_cuts is not None:
+                    self._lmins[YX] = np.maximum(self._lmins[XY], lmin_cut)
+                    self._lmaxs[YX] = np.minimum(self._lmaxs[XY], lmax_cut)
+                else:
+                    self._is_mode[YX] = False
+                    self._lmins.pop(YX, None)
+                    self._lmaxs.pop(YX, None)
+        self.lmax = max(max(self._lmaxs[XY]) for XY in self.lrange)
+
+        # early exit if nothing was cut
+        if len(kept_idxs) == self._invkll.shape[0]:
+            return
+
+        # invert, cut, re-invert covariance matrix
+        self.log.debug("\tInvert invkll matrix")
+        kll = np.linalg.inv(self._invkll)
+        kll = kll[kept_idxs,:][:,kept_idxs]
+        self.log.debug("\tInvert kll matrix")
+        self._invkll = np.linalg.inv(kll)
 
     def _get_matrix_size(self):
         """
@@ -260,8 +341,12 @@ class _HillipopLikelihood(InstallableLikelihood):
         # TT,EE,TEET
         for m in ["TT", "EE", "TE"]:
             if self._is_mode[m]:
-                nells = self._lmaxs[m] - self._lmins[m] + 1
-                nell += np.sum([nells[self._xspec2xfreq.index(k)] for k in range(self._nxfreq)])
+                for xf in range(self._nxfreq):
+                    lmin = self._lmins[m][self._xspec2xfreq.index(xf)]
+                    lmax = self._lmaxs[m][self._xspec2xfreq.index(xf)]
+                    wf = deepcopy( self.wf)
+                    wf.cut_binning( lmin, lmax)
+                    nell += wf.nbins
 
         return nell
 
@@ -273,9 +358,9 @@ class _HillipopLikelihood(InstallableLikelihood):
         acl = np.asarray(cl)
         xl = []
         for xf in range(self._nxfreq):
-            lmin = self._lmins[mode][self._xspec2xfreq.index(xf)]
-            lmax = self._lmaxs[mode][self._xspec2xfreq.index(xf)]
-            xl += list(acl[xf, lmin : lmax + 1])
+            p = self._bin_p[(mode, xf)]
+            minlmax = min(acl[xf].shape[0], p.shape[1])
+            xl += list(np.dot(acl[xf, :minlmax], p.T[:minlmax]))
         return xl
 
     def _xspectra_to_xfreq(self, cl, weight, normed=True):
@@ -315,7 +400,7 @@ class _HillipopLikelihood(InstallableLikelihood):
         dlmodel = [dlth[mode]] * self._nxspec
         for fg in self.fgs[mode]:
             dlmodel += fg.compute_dl(pars)
-        
+
         # Compute Rl = Dl - Dlth
         Rspec = np.array([dldata[xs] - cal[xs] * dlmodel[xs] for xs in range(self._nxspec)])
 
@@ -405,6 +490,11 @@ class _HillipopLikelihood(InstallableLikelihood):
         chi2 = self._invkll.dot(self.delta_cl).dot(self.delta_cl)
 
         self.log.debug(f"chi2/ndof = {chi2}/{len(self.delta_cl)}")
+
+        #protect against cast float32
+        alpha = 8. - np.ceil(np.log10(chi2))
+        chi2 = np.float64(np.round(chi2*10**alpha))*10**(-alpha)
+        
         return chi2
 
     def get_requirements(self):
@@ -472,9 +562,9 @@ def _get_install_options(filename):
 
 
 class TTTEEE(_HillipopLikelihood):
-    """High-L TT+TE+EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood
+    """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
     with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
-    split-frequency maps
+    split-frequency maps.
 
     """
 
@@ -482,9 +572,9 @@ class TTTEEE(_HillipopLikelihood):
 
 
 class TT(_HillipopLikelihood):
-    """High-L TT Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
@@ -492,9 +582,9 @@ class TT(_HillipopLikelihood):
 
 
 class EE(_HillipopLikelihood):
-    """High-L EE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
@@ -502,10 +592,33 @@ class EE(_HillipopLikelihood):
 
 
 class TE(_HillipopLikelihood):
-    """High-L TE Likelihood for Polarized Planck spectra-based Gaussian-approximated likelihood with
+    """High-L TE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
     foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
-    maps
+    maps.
 
     """
 
     install_options = _get_install_options("planck_2020_hillipop_TE_v4.2.tar.gz")
+
+
+class TT_bin(_HillipopLikelihood):
+    """High-L TT Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood with
+    foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz split-frequency
+    maps.
+    Binned version.
+
+    """
+
+    install_options = _get_install_options("planck_2020_hillipop_TT_bin_v4.2.tar.gz")
+
+
+class TTTEEE_bin(_HillipopLikelihood):
+    """High-L TT+TE+EE Likelihood for Polarized Planck Spectra-based Gaussian-approximated likelihood
+    with foreground models for cross-correlation spectra from Planck 100, 143 and 217 GHz
+    split-frequency maps.
+    Binned version.
+
+    """
+
+    install_options = _get_install_options("planck_2020_hillipop_TTTEEE_bin_v4.2.tar.gz")
+

@@ -290,7 +290,7 @@ class dust_model(fgmodel):
 
 
 # Syncrothron model
-class sync_model(fgmodel):
+class sync(fgmodel):
     def __init__(self, lmax, freqs, mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         self.name = "Synchrotron"
@@ -320,7 +320,7 @@ class sync_model(fgmodel):
 
 
 # CIB model
-class cib_model(fgmodel):
+class cib(fgmodel):
     def __init__(self, lmax, freqs, filename=None, mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         self.name = "clustered CIB"
@@ -349,7 +349,7 @@ class cib_model(fgmodel):
             return 0.
 
 # tSZ (one spectrum for all freqs)
-class tsz_model(fgmodel):
+class tsz(fgmodel):
     def __init__(self, lmax, freqs, filename="", mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         # template: Dl=l(l+1)/2pi Cl, units uK at 143GHz
@@ -376,7 +376,7 @@ class tsz_model(fgmodel):
 
 
 # kSZ
-class ksz_model(fgmodel):
+class ksz(fgmodel):
     def __init__(self, lmax, freqs, filename="", mode="TT", auto=False):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         # template: Dl=l(l+1)/2pi Cl, units uK
@@ -398,7 +398,7 @@ class ksz_model(fgmodel):
 
 
 # SZxCIB model
-class szxcib_model(fgmodel):
+class szxcib(fgmodel):
     def __init__(self, lmax, freqs, filename=None, mode="TT", auto=False, **kwargs):
         super().__init__(lmax, freqs, mode=mode, auto=auto)
         self.name = "SZxCIB"
