@@ -9,15 +9,6 @@ packages_path = os.environ.get("COBAYA_PACKAGES_PATH") or os.path.join(
 )
 
 cosmo_params = {
-    "cosmomc_theta": 0.0104085,
-    "As": 2.0989031673191437e-09,
-    "ombh2": 0.02237,
-    "omch2": 0.1200,
-    "ns": 0.9649,
-    "Alens": 1.0,
-    "tau": 0.0544,
-}
-cosmo_params = {
     "H0": 67.66,
     "As": 2.088434844099595e-09,
     "ombh2": 0.02226,
